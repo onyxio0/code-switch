@@ -1,0 +1,947 @@
+<template>
+  <div class="main-shell">
+    <div class="global-actions">
+      <p class="global-eyebrow">{{ t('components.main.hero.eyebrow') }}</p>
+      <button class="ghost-icon" :aria-label="t('components.main.controls.github')" @click="openGitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M9 19c-4.5 1.5-4.5-2.5-6-3m12 5v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0018 3.77 5.07 5.07 0 0017.91 1S16.73.65 14 2.48a13.38 13.38 0 00-5 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 3.77a5.44 5.44 0 00-1.5 3.76c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <button class="ghost-icon" :aria-label="t('components.main.controls.theme')" @click="toggleTheme">
+        <svg v-if="themeIcon === 'sun'" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5" fill="none" />
+          <path
+            d="M12 3v2m0 14v2m9-9h-2M5 12H3m14.95 6.95-1.41-1.41M7.46 7.46 6.05 6.05m12.9 0-1.41 1.41M7.46 16.54l-1.41 1.41"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          />
+        </svg>
+        <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+      <button class="ghost-icon" :aria-label="t('components.main.controls.settings')" @click="goToSettings">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 15a3 3 0 100-6 3 3 0 000 6z"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none"
+          />
+          <path
+            d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none"
+          />
+        </svg>
+      </button>
+    </div>
+    <div class="contrib-page">
+      <section class="contrib-hero">
+        <h1>{{ t('components.main.hero.title') }}</h1>
+        <!-- <p class="lead">
+          {{ t('components.main.hero.lead') }}
+        </p> -->
+      </section>
+
+      <section
+        v-if="showHeatmap"
+        ref="heatmapContainerRef"
+        class="contrib-wall"
+        :aria-label="t('components.main.heatmap.ariaLabel')"
+      >
+        <div class="contrib-legend">
+          <span>{{ t('components.main.heatmap.legendLow') }}</span>
+          <span v-for="level in 5" :key="level" :class="['legend-box', intensityClass(level - 1)]" />
+          <span>{{ t('components.main.heatmap.legendHigh') }}</span>
+        </div>
+
+        <div class="contrib-grid">
+          <div
+            v-for="(week, weekIndex) in usageHeatmap"
+            :key="weekIndex"
+            class="contrib-column"
+          >
+            <div
+              v-for="(day, dayIndex) in week"
+              :key="dayIndex"
+              class="contrib-cell"
+              :class="intensityClass(day.intensity)"
+              @mouseenter="showUsageTooltip(day, $event)"
+              @mousemove="showUsageTooltip(day, $event)"
+              @mouseleave="hideUsageTooltip"
+            />
+          </div>
+        </div>
+        <div
+          v-if="usageTooltip.visible"
+          class="contrib-tooltip"
+          :class="usageTooltip.placement"
+          :style="{ left: `${usageTooltip.left}px`, top: `${usageTooltip.top}px` }"
+        >
+          <p class="tooltip-heading">{{ formattedTooltipLabel }}</p>
+          <ul class="tooltip-metrics">
+            <li v-for="metric in usageTooltipMetrics" :key="metric.key">
+              <span class="metric-label">{{ metric.label }}</span>
+              <span class="metric-value">{{ metric.value }}</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="automation-section">
+      <div class="section-header">
+        <div class="tab-group" role="tablist" :aria-label="t('components.main.tabs.ariaLabel')">
+          <button
+            v-for="(tab, idx) in tabs"
+            :key="tab.id"
+            class="tab-pill"
+            :class="{ active: selectedIndex === idx }"
+            role="tab"
+            :aria-selected="selectedIndex === idx"
+            type="button"
+            @click="onTabChange(idx)"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+        <div class="section-controls">
+          <div class="relay-toggle" :aria-label="currentProxyLabel">
+            <div class="relay-switch">
+              <label class="mac-switch sm">
+                <input
+                  type="checkbox"
+                  :checked="activeProxyState"
+                  :disabled="activeProxyBusy"
+                  @change="onProxyToggle"
+                />
+                <span></span>
+              </label>
+              <span class="relay-tooltip-content">{{ currentProxyLabel }} · {{ t('components.main.relayToggle.tooltip') }}</span>
+            </div>
+          </div>
+          <button class="ghost-icon" :aria-label="t('components.main.logs.view')" @click="goToLogs">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 7h14M5 12h14M5 17h9"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              />
+            </svg>
+          </button>
+          <button class="ghost-icon" :aria-label="t('components.main.tabs.addCard')" @click="openCreateModal">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="automation-list" @dragover.prevent>
+        <article
+          v-for="card in activeCards"
+          :key="card.id"
+          :class="['automation-card', { dragging: draggingId === card.id }]"
+          draggable="true"
+          @dragstart="onDragStart(card.id)"
+          @dragend="onDragEnd"
+          @drop="onDrop(card.id)"
+        >
+          <div class="card-leading">
+            <div class="card-icon" :style="{ backgroundColor: card.tint, color: card.accent }">
+              <span
+                v-if="!iconSvg(card.icon)"
+                class="icon-fallback"
+              >
+                {{ vendorInitials(card.name) }}
+              </span>
+              <span
+                v-else
+                class="icon-svg"
+                v-html="iconSvg(card.icon)"
+                aria-hidden="true"
+              ></span>
+            </div>
+            <div class="card-text">
+              <div class="card-title-row">
+                <p class="card-title">{{ card.name }}</p>
+                <button
+                  v-if="card.officialSite"
+                  class="card-site"
+                  type="button"
+                  @click.stop="openOfficialSite(card.officialSite)"
+                >
+                  {{ formatOfficialSite(card.officialSite) }}
+                </button>
+              </div>
+              <!-- <p class="card-subtitle">{{ card.apiUrl }}</p> -->
+              <p class="card-metrics">{{ providerStatLine(card.name) }}</p>
+            </div>
+          </div>
+          <div class="card-actions">
+            <label class="mac-switch sm">
+              <input type="checkbox" v-model="card.enabled" @change="persistProviders(activeTab)" />
+              <span></span>
+            </label>
+            <button class="ghost-icon" @click="configure(card)">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M11.983 2.25a1.125 1.125 0 011.077.81l.563 2.101a7.482 7.482 0 012.326 1.343l2.08-.621a1.125 1.125 0 011.356.651l1.313 3.207a1.125 1.125 0 01-.442 1.339l-1.86 1.205a7.418 7.418 0 010 2.686l1.86 1.205a1.125 1.125 0 01.442 1.339l-1.313 3.207a1.125 1.125 0 01-1.356.651l-2.08-.621a7.482 7.482 0 01-2.326 1.343l-.563 2.101a1.125 1.125 0 01-1.077.81h-2.634a1.125 1.125 0 01-1.077-.81l-.563-2.101a7.482 7.482 0 01-2.326-1.343l-2.08.621a1.125 1.125 0 01-1.356-.651l-1.313-3.207a1.125 1.125 0 01.442-1.339l1.86-1.205a7.418 7.418 0 010-2.686l-1.86-1.205a1.125 1.125 0 01-.442-1.339l1.313-3.207a1.125 1.125 0 011.356-.651l2.08.621a7.482 7.482 0 012.326-1.343l.563-2.101a1.125 1.125 0 011.077-.81h2.634z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button class="ghost-icon" @click="requestRemove(card)">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M9 3h6m-7 4h8m-6 0v11m4-11v11M5 7h14l-.867 12.138A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.862L5 7z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </article>
+      </div>
+      </section>
+
+      <BaseModal
+      :open="modalState.open"
+      :title="modalState.editingId ? t('components.main.form.editTitle') : t('components.main.form.createTitle')"
+      @close="closeModal"
+    >
+      <form class="vendor-form" @submit.prevent="submitModal">
+                <label class="form-field">
+                  <span>{{ t('components.main.form.labels.name') }}</span>
+                  <BaseInput
+                    v-model="modalState.form.name"
+                    type="text"
+                    :placeholder="t('components.main.form.placeholders.name')"
+                    required
+                    :disabled="Boolean(modalState.editingId)"
+                  />
+                </label>
+
+                <label class="form-field">
+                  <span class="label-row">
+                    {{ t('components.main.form.labels.apiUrl') }}
+                    <span v-if="modalState.errors.apiUrl" class="field-error">
+                      {{ modalState.errors.apiUrl }}
+                    </span>
+                  </span>
+                  <BaseInput
+                    v-model="modalState.form.apiUrl"
+                    type="text"
+                    :placeholder="t('components.main.form.placeholders.apiUrl')"
+                    required
+                    :class="{ 'has-error': !!modalState.errors.apiUrl }"
+                  />
+                </label>
+
+                <label class="form-field">
+                  <span>{{ t('components.main.form.labels.officialSite') }}</span>
+                  <BaseInput
+                    v-model="modalState.form.officialSite"
+                    type="text"
+                    :placeholder="t('components.main.form.placeholders.officialSite')"
+                  />
+                </label>
+
+                <label class="form-field">
+                  <span>{{ t('components.main.form.labels.apiKey') }}</span>
+                  <BaseInput
+                    v-model="modalState.form.apiKey"
+                    type="text"
+                    :placeholder="t('components.main.form.placeholders.apiKey')"
+                  />
+                </label>
+
+                <div class="form-field">
+                  <span>{{ t('components.main.form.labels.icon') }}</span>
+                  <Listbox v-model="modalState.form.icon" v-slot="{ open }">
+                    <div class="icon-select">
+                      <ListboxButton class="icon-select-button">
+                        <span class="icon-preview" v-html="iconSvg(modalState.form.icon)" aria-hidden="true"></span>
+                        <span class="icon-select-label">{{ modalState.form.icon }}</span>
+                        <svg viewBox="0 0 20 20" aria-hidden="true">
+                          <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        </svg>
+                      </ListboxButton>
+                      <ListboxOptions v-if="open" class="icon-select-options">
+                        <ListboxOption
+                          v-for="iconName in iconOptions"
+                          :key="iconName"
+                          :value="iconName"
+                          v-slot="{ active, selected }"
+                        >
+                          <div :class="['icon-option', { active, selected }]">
+                            <span class="icon-preview" v-html="iconSvg(iconName)" aria-hidden="true"></span>
+                            <span class="icon-name">{{ iconName }}</span>
+                          </div>
+                        </ListboxOption>
+                      </ListboxOptions>
+                    </div>
+                  </Listbox>
+                </div>
+
+                <div class="form-field switch-field">
+                  <span>{{ t('components.main.form.labels.enabled') }}</span>
+                  <div class="switch-inline">
+                    <label class="mac-switch">
+                      <input type="checkbox" v-model="modalState.form.enabled" />
+                      <span></span>
+                    </label>
+                    <span class="switch-text">
+                      {{ modalState.form.enabled ? t('components.main.form.switch.on') : t('components.main.form.switch.off') }}
+                    </span>
+                  </div>
+                </div>
+
+                <footer class="form-actions">
+                  <BaseButton variant="outline" type="button" @click="closeModal">
+                    {{ t('components.main.form.actions.cancel') }}
+                  </BaseButton>
+                  <BaseButton type="submit">
+                    {{ t('components.main.form.actions.save') }}
+                  </BaseButton>
+                </footer>
+      </form>
+      </BaseModal>
+      <BaseModal
+      :open="confirmState.open"
+      :title="t('components.main.form.confirmDeleteTitle')"
+      variant="confirm"
+      @close="closeConfirm"
+    >
+      <div class="confirm-body">
+        <p>
+          {{ t('components.main.form.confirmDeleteMessage', { name: confirmState.card?.name ?? '' }) }}
+        </p>
+      </div>
+      <footer class="form-actions confirm-actions">
+        <BaseButton variant="outline" type="button" @click="closeConfirm">
+          {{ t('components.main.form.actions.cancel') }}
+        </BaseButton>
+        <BaseButton variant="danger" type="button" @click="confirmRemove">
+          {{ t('components.main.form.actions.delete') }}
+        </BaseButton>
+      </footer>
+      </BaseModal>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, reactive, ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
+import { Browser } from '@wailsio/runtime'
+import {
+  buildUsageHeatmapMatrix,
+  generateFallbackUsageHeatmap,
+  DAYS_PER_WEEK,
+  DEFAULT_USAGE_WEEKS,
+  type UsageHeatmapWeek,
+  type UsageHeatmapDay,
+} from '../../data/usageHeatmap'
+import { automationCardGroups, createAutomationCards, type AutomationCard } from '../../data/cards'
+import lobeIcons from '../../icons/lobeIconMap'
+import BaseButton from '../common/BaseButton.vue'
+import BaseModal from '../common/BaseModal.vue'
+import BaseInput from '../common/BaseInput.vue'
+import { LoadProviders, SaveProviders } from '../../../bindings/codeswitch/services/providerservice'
+import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
+import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
+import { fetchAppSettings, type AppSettings } from '../../services/appSettings'
+import { getCurrentTheme, setTheme, type ThemeMode } from '../../utils/ThemeManager'
+import { useRouter } from 'vue-router'
+
+const { t, locale } = useI18n()
+const router = useRouter()
+const themeMode = ref<ThemeMode>(getCurrentTheme())
+const resolvedTheme = computed(() => {
+  if (themeMode.value === 'systemdefault') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }
+  return themeMode.value
+})
+const themeIcon = computed(() => (resolvedTheme.value === 'dark' ? 'moon' : 'sun'))
+
+const USAGE_WEEKS = DEFAULT_USAGE_WEEKS
+const usageHeatmap = ref<UsageHeatmapWeek[]>(generateFallbackUsageHeatmap(USAGE_WEEKS))
+const heatmapContainerRef = ref<HTMLElement | null>(null)
+const proxyStates = reactive<Record<ProviderTab, boolean>>({
+  claude: false,
+  codex: false,
+})
+const proxyBusy = reactive<Record<ProviderTab, boolean>>({
+  claude: false,
+  codex: false,
+})
+
+const providerStatsMap = reactive<Record<ProviderTab, Record<string, ProviderDailyStat>>>({
+  claude: {},
+  codex: {},
+} as Record<ProviderTab, Record<string, ProviderDailyStat>>)
+const providerStatsLoading = reactive<Record<ProviderTab, boolean>>({
+  claude: false,
+  codex: false,
+} as Record<ProviderTab, boolean>)
+let providerStatsTimer: number | undefined
+const showHeatmap = ref(true)
+
+const intensityClass = (value: number) => `gh-level-${value}`
+
+type TooltipPlacement = 'above' | 'below'
+
+const usageTooltip = reactive({
+  visible: false,
+  label: '',
+  dateKey: '',
+  left: 0,
+  top: 0,
+  placement: 'above' as TooltipPlacement,
+  requests: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  reasoningTokens: 0,
+  cost: 0,
+})
+
+const formatMetric = (value: number) => value.toLocaleString()
+
+const tooltipDateFormatter = computed(() =>
+  new Intl.DateTimeFormat(locale.value || 'en', {
+    month: 'short',
+    day: 'numeric',
+  })
+)
+
+const currencyFormatter = computed(() =>
+  new Intl.NumberFormat(locale.value || 'en', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+)
+
+const formattedTooltipLabel = computed(() => {
+  if (!usageTooltip.dateKey) return usageTooltip.label
+  const date = new Date(`${usageTooltip.dateKey}T00:00:00`)
+  if (Number.isNaN(date.getTime())) {
+    return usageTooltip.label
+  }
+  return tooltipDateFormatter.value.format(date)
+})
+
+const formattedTooltipAmount = computed(() =>
+  currencyFormatter.value.format(Math.max(usageTooltip.cost, 0))
+)
+
+const usageTooltipMetrics = computed(() => [
+  {
+    key: 'cost',
+    label: t('components.main.heatmap.metrics.cost'),
+    value: formattedTooltipAmount.value,
+  },
+  {
+    key: 'requests',
+    label: t('components.main.heatmap.metrics.requests'),
+    value: formatMetric(usageTooltip.requests),
+  },
+  {
+    key: 'inputTokens',
+    label: t('components.main.heatmap.metrics.inputTokens'),
+    value: formatMetric(usageTooltip.inputTokens),
+  },
+  {
+    key: 'outputTokens',
+    label: t('components.main.heatmap.metrics.outputTokens'),
+    value: formatMetric(usageTooltip.outputTokens),
+  },
+  {
+    key: 'reasoningTokens',
+    label: t('components.main.heatmap.metrics.reasoningTokens'),
+    value: formatMetric(usageTooltip.reasoningTokens),
+  },
+])
+
+const clamp = (value: number, min: number, max: number) => {
+  if (max <= min) return min
+  return Math.min(Math.max(value, min), max)
+}
+
+const showUsageTooltip = (day: UsageHeatmapDay, event: MouseEvent) => {
+  const target = event.currentTarget as HTMLElement | null
+  const containerRect = heatmapContainerRef.value?.getBoundingClientRect()
+  const cellRect = target?.getBoundingClientRect()
+  if (!containerRect || !cellRect) return
+  usageTooltip.label = day.label
+  usageTooltip.dateKey = day.dateKey
+  usageTooltip.requests = day.requests
+  usageTooltip.inputTokens = day.inputTokens
+  usageTooltip.outputTokens = day.outputTokens
+  usageTooltip.reasoningTokens = day.reasoningTokens
+  usageTooltip.cost = day.cost
+  const horizontalPadding = 20
+  const relativeLeft = cellRect.left - containerRect.left + cellRect.width / 2
+  usageTooltip.left = clamp(relativeLeft, horizontalPadding, containerRect.width - horizontalPadding)
+  const relativeTop = cellRect.top - containerRect.top
+  const shouldPlaceBelow = relativeTop < 60
+  usageTooltip.placement = shouldPlaceBelow ? 'below' : 'above'
+  const verticalPadding = 24
+  const baseTop = shouldPlaceBelow ? relativeTop + cellRect.height : relativeTop
+  usageTooltip.top = clamp(baseTop, verticalPadding, containerRect.height - verticalPadding)
+  usageTooltip.visible = true
+}
+
+const hideUsageTooltip = () => {
+  usageTooltip.visible = false
+}
+
+const loadAppSettings = async () => {
+  try {
+    const data: AppSettings = await fetchAppSettings()
+    showHeatmap.value = data?.show_heatmap ?? true
+  } catch (error) {
+    console.error('failed to load app settings', error)
+    showHeatmap.value = true
+  }
+}
+
+const handleAppSettingsUpdated = () => {
+  void loadAppSettings()
+}
+
+const normalizeProviderKey = (value: string) => value?.trim().toLowerCase() ?? ''
+
+const loadUsageHeatmap = async () => {
+  try {
+    const stats = await fetchHeatmapStats(USAGE_WEEKS * DAYS_PER_WEEK)
+    usageHeatmap.value = buildUsageHeatmapMatrix(stats, USAGE_WEEKS)
+  } catch (error) {
+    console.error('Failed to load usage heatmap stats', error)
+  }
+}
+
+const tabs = [
+  { id: 'claude', label: 'Claude Code' },
+  { id: 'codex', label: 'Codex' },
+] as const
+type ProviderTab = (typeof tabs)[number]['id']
+const providerTabIds = tabs.map((tab) => tab.id) as ProviderTab[]
+
+const cards = reactive<Record<ProviderTab, AutomationCard[]>>({
+  claude: createAutomationCards(automationCardGroups.claude),
+  codex: createAutomationCards(automationCardGroups.codex),
+})
+const draggingId = ref<number | null>(null)
+
+const serializeProviders = (providers: AutomationCard[]) => providers.map((provider) => ({ ...provider }))
+
+const persistProviders = async (tabId: ProviderTab) => {
+  try {
+    await SaveProviders(tabId, serializeProviders(cards[tabId]))
+  } catch (error) {
+    console.error('Failed to save providers', error)
+  }
+}
+
+const replaceProviders = (tabId: ProviderTab, data: AutomationCard[]) => {
+  cards[tabId].splice(0, cards[tabId].length, ...createAutomationCards(data))
+}
+
+const loadProvidersFromDisk = async () => {
+  for (const tab of providerTabIds) {
+    try {
+      const saved = await LoadProviders(tab)
+      if (saved && saved.length) {
+        replaceProviders(tab, saved)
+      } else {
+        await persistProviders(tab)
+      }
+    } catch (error) {
+      console.error('Failed to load providers', error)
+    }
+  }
+}
+
+const refreshProxyState = async (tab: ProviderTab) => {
+  try {
+    const status = await fetchProxyStatus(tab)
+    proxyStates[tab] = Boolean(status?.enabled)
+  } catch (error) {
+    console.error(`Failed to fetch proxy status for ${tab}`, error)
+    proxyStates[tab] = false
+  }
+}
+
+const onProxyToggle = async () => {
+  const tab = activeTab.value
+  if (proxyBusy[tab]) return
+  proxyBusy[tab] = true
+  const nextState = !proxyStates[tab]
+  try {
+    if (nextState) {
+      await enableProxy(tab)
+    } else {
+      await disableProxy(tab)
+    }
+    proxyStates[tab] = nextState
+  } catch (error) {
+    console.error(`Failed to toggle proxy for ${tab}`, error)
+  } finally {
+    proxyBusy[tab] = false
+  }
+}
+
+const loadProviderStats = async (tab: ProviderTab) => {
+  providerStatsLoading[tab] = true
+  try {
+    const stats = await fetchProviderDailyStats(tab)
+    const mapped: Record<string, ProviderDailyStat> = {}
+    ;(stats ?? []).forEach((stat) => {
+      mapped[normalizeProviderKey(stat.provider)] = stat
+    })
+    providerStatsMap[tab] = mapped
+  } catch (error) {
+    console.error(`Failed to load provider stats for ${tab}`, error)
+  } finally {
+    providerStatsLoading[tab] = false
+  }
+}
+
+const providerStatLine = (providerName: string) => {
+  const tab = activeTab.value
+  if (providerStatsLoading[tab]) {
+    return t('components.main.providers.loading')
+  }
+  const stat = providerStatsMap[tab]?.[normalizeProviderKey(providerName)]
+  if (!stat) {
+    return t('components.main.providers.noData')
+  }
+  const totalTokens = stat.input_tokens + stat.output_tokens
+  const parts = [
+    `${t('components.main.providers.requests')}: ${formatMetric(stat.total_requests)}`,
+    `${t('components.main.providers.tokens')}: ${formatMetric(totalTokens)}`,
+    `${t('components.main.providers.cost')}: ${currencyFormatter.value.format(Math.max(stat.cost_total, 0))}`,
+  ]
+  return parts.join(' · ')
+}
+
+const normalizeUrlWithScheme = (value: string) => {
+  if (!value) return ''
+  try {
+    const url = new URL(value)
+    return url.toString()
+  } catch {
+    return `https://${value}`
+  }
+}
+
+const openOfficialSite = (site: string) => {
+  const target = normalizeUrlWithScheme(site)
+  if (!target) return
+  Browser.OpenURL(target).catch(() => {
+    console.error('failed to open link', target)
+  })
+}
+
+const formatOfficialSite = (site: string) => {
+  if (!site) return ''
+  try {
+    const url = new URL(normalizeUrlWithScheme(site))
+    return url.hostname.replace(/^www\./, '')
+  } catch {
+    return site
+  }
+}
+
+const startProviderStatsTimer = () => {
+  stopProviderStatsTimer()
+  providerStatsTimer = window.setInterval(() => {
+    providerTabIds.forEach((tab) => {
+      void loadProviderStats(tab)
+    })
+  }, 60_000)
+}
+
+const stopProviderStatsTimer = () => {
+  if (providerStatsTimer) {
+    clearInterval(providerStatsTimer)
+    providerStatsTimer = undefined
+  }
+}
+
+onMounted(async () => {
+  void loadUsageHeatmap()
+  await loadProvidersFromDisk()
+  await Promise.all(providerTabIds.map(refreshProxyState))
+  await Promise.all(providerTabIds.map((tab) => loadProviderStats(tab)))
+  await loadAppSettings()
+  startProviderStatsTimer()
+  window.addEventListener('app-settings-updated', handleAppSettingsUpdated)
+})
+
+onUnmounted(() => {
+  stopProviderStatsTimer()
+  window.removeEventListener('app-settings-updated', handleAppSettingsUpdated)
+})
+
+const selectedIndex = ref(0)
+const activeTab = computed<ProviderTab>(() => tabs[selectedIndex.value]?.id ?? tabs[0].id)
+const activeCards = computed(() => cards[activeTab.value] ?? [])
+const currentProxyLabel = computed(() =>
+  activeTab.value === 'claude'
+    ? t('components.main.relayToggle.hostClaude')
+    : t('components.main.relayToggle.hostCodex')
+)
+const activeProxyState = computed(() => proxyStates[activeTab.value])
+const activeProxyBusy = computed(() => proxyBusy[activeTab.value])
+
+const goToLogs = () => {
+  router.push('/logs')
+}
+
+const goToSettings = () => {
+  router.push('/settings')
+}
+
+const toggleTheme = () => {
+  const next = resolvedTheme.value === 'dark' ? 'light' : 'dark'
+  themeMode.value = next
+  setTheme(next)
+}
+
+const openGitHub = () => {
+  const url = 'https://github.com/daodao97/code-switch'
+  Browser.OpenURL(url).catch(() => {
+    console.error('failed to open github')
+  })
+}
+
+type VendorForm = {
+  name: string
+  apiUrl: string
+  apiKey: string
+  officialSite: string
+  icon: string
+  enabled: boolean
+}
+
+const iconOptions = Object.keys(lobeIcons).sort((a, b) => a.localeCompare(b))
+const defaultIconKey = iconOptions[0] ?? 'aicoding'
+
+const defaultFormValues = (): VendorForm => ({
+  name: '',
+  apiUrl: '',
+  apiKey: '',
+  officialSite: '',
+  icon: defaultIconKey,
+  enabled: true,
+})
+
+const modalState = reactive({
+  open: false,
+  tabId: tabs[0].id as ProviderTab,
+  editingId: null as number | null,
+  form: defaultFormValues(),
+  errors: {
+    apiUrl: '',
+  },
+})
+
+const editingCard = ref<AutomationCard | null>(null)
+const confirmState = reactive({ open: false, card: null as AutomationCard | null, tabId: tabs[0].id as ProviderTab })
+
+const openCreateModal = () => {
+  modalState.tabId = activeTab.value
+  modalState.editingId = null
+  editingCard.value = null
+  Object.assign(modalState.form, defaultFormValues())
+  modalState.errors.apiUrl = ''
+  modalState.open = true
+}
+
+const openEditModal = (card: AutomationCard) => {
+  modalState.tabId = activeTab.value
+  modalState.editingId = card.id
+  editingCard.value = card
+  Object.assign(modalState.form, {
+    name: card.name,
+    apiUrl: card.apiUrl,
+    apiKey: card.apiKey,
+    officialSite: card.officialSite,
+    icon: card.icon,
+    enabled: card.enabled,
+  })
+  modalState.errors.apiUrl = ''
+  modalState.open = true
+}
+
+const closeModal = () => {
+  modalState.open = false
+}
+
+const closeConfirm = () => {
+  confirmState.open = false
+  confirmState.card = null
+}
+
+const submitModal = () => {
+  const list = cards[modalState.tabId]
+  if (!list) return
+  const name = modalState.form.name.trim()
+  const apiUrl = modalState.form.apiUrl.trim()
+  const apiKey = modalState.form.apiKey.trim()
+  const officialSite = modalState.form.officialSite.trim()
+  const icon = (modalState.form.icon || defaultIconKey).toString().trim().toLowerCase() || defaultIconKey
+  modalState.errors.apiUrl = ''
+  try {
+    const parsed = new URL(apiUrl)
+    if (!/^https?:/.test(parsed.protocol)) throw new Error('protocol')
+  } catch {
+    modalState.errors.apiUrl = t('components.main.form.errors.invalidUrl')
+    return
+  }
+
+  if (editingCard.value) {
+    Object.assign(editingCard.value, {
+      apiUrl: apiUrl || editingCard.value.apiUrl,
+      apiKey,
+      officialSite,
+      icon,
+      enabled: modalState.form.enabled,
+    })
+    void persistProviders(modalState.tabId)
+  } else {
+    const newCard: AutomationCard = {
+      id: Date.now(),
+      name: name || 'Untitled vendor',
+      apiUrl,
+      apiKey,
+      officialSite,
+      icon,
+      accent: '#0a84ff',
+      tint: 'rgba(15, 23, 42, 0.12)',
+      enabled: modalState.form.enabled,
+    }
+    list.push(newCard)
+    void persistProviders(modalState.tabId)
+  }
+
+  closeModal()
+}
+
+const configure = (card: AutomationCard) => {
+  openEditModal(card)
+}
+
+const remove = (id: number, tabId: ProviderTab = activeTab.value) => {
+  const list = cards[tabId]
+  if (!list) return
+  const index = list.findIndex((card) => card.id === id)
+  if (index > -1) {
+    list.splice(index, 1)
+    void persistProviders(tabId)
+  }
+}
+
+const requestRemove = (card: AutomationCard) => {
+  confirmState.card = card
+  confirmState.tabId = activeTab.value
+  confirmState.open = true
+}
+
+const confirmRemove = () => {
+  if (!confirmState.card) return
+  remove(confirmState.card.id, confirmState.tabId)
+  closeConfirm()
+}
+
+const onDragStart = (id: number) => {
+  draggingId.value = id
+}
+
+const onDrop = (targetId: number) => {
+  if (draggingId.value === null || draggingId.value === targetId) return
+  const currentTab = activeTab.value
+  const list = cards[currentTab]
+  if (!list) return
+  const fromIndex = list.findIndex((card) => card.id === draggingId.value)
+  const toIndex = list.findIndex((card) => card.id === targetId)
+  if (fromIndex === -1 || toIndex === -1) return
+  const [moved] = list.splice(fromIndex, 1)
+  const newIndex = fromIndex < toIndex ? toIndex - 1 : toIndex
+  list.splice(newIndex, 0, moved)
+  draggingId.value = null
+  void persistProviders(currentTab)
+}
+
+const onDragEnd = () => {
+  draggingId.value = null
+}
+
+const iconSvg = (name: string) => {
+  if (!name) return ''
+  return lobeIcons[name.toLowerCase()] ?? ''
+}
+
+const vendorInitials = (name: string) => {
+  if (!name) return 'AI'
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+}
+
+const onTabChange = (idx: number) => {
+  selectedIndex.value = idx
+  const nextTab = tabs[idx]?.id
+  if (nextTab) {
+    void refreshProxyState(nextTab as ProviderTab)
+    void loadProviderStats(nextTab as ProviderTab)
+  }
+}
+</script>
