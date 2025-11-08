@@ -45,13 +45,13 @@ wails3 task dev
    ```
 2. 运行 Windows 任务：
    ```bash
-   wails3 task windows:build ARCH=amd64
+   env ARCH=amd64 wails3 task windows:build
    # 生成安装器
-   wails3 task windows:package ARCH=amd64
+   env ARCH=amd64 wails3 task windows:package
    ```
 
 ## 发布
-脚本 `scripts/publish_release.sh` 将自动打包并上传以下资产：
+脚本 `scripts/publish_release.sh v0.1.0` 将自动打包并上传以下资产：
 - `codeswitch-macos.zip`
 - `codeswitch-arm64-installer.exe`
 - `codeswitch.exe`
@@ -59,7 +59,7 @@ wails3 task dev
 若要手动发布，可执行：
 ```bash
 wails3 task package
-wails3 task windows:package ARCH=amd64
+env ARCH=amd64 wails3 task windows:package
 scripts/publish_release.sh
 ```
 

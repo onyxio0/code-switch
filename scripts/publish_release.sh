@@ -6,13 +6,23 @@ if ! command -v gh >/dev/null 2>&1; then
   exit 1
 fi
 
-TAG="v0.1.0"
-NOTES="RELEASE_NOTES.md"
+if [ $# -lt 1 ]; then
+  echo "Usage: scripts/publish_release.sh <tag> [notes-file]" >&2
+  exit 1
+fi
+
+TAG="$1"
+NOTES="${2:-RELEASE_NOTES.md}"
+
+if [ ! -f "$NOTES" ]; then
+  echo "Release notes file '$NOTES' not found" >&2
+  exit 1
+fi
 
 wails3 task common:update:build-assets
 wails3 task package ${BUILD_OPTS:-}
 
-wails3 task windows:package ARCH=amd64 ${BUILD_OPTS:-}
+env ARCH=amd64 wails3 task windows:package ${BUILD_OPTS:-}
 
 if [ ! -d "bin/codeswitch.app" ]; then
   echo "Missing asset: bin/codeswitch.app" >&2
@@ -27,7 +37,7 @@ rm -rf "bin/codeswitch.app"
 
 ASSETS=(
   "$MAC_ZIP"
-  "bin/codeswitch-arm64-installer.exe"
+  "bin/codeswitch-amd64-installer.exe"
   "bin/codeswitch.exe"
 )
 
