@@ -84,7 +84,9 @@
         "settings": "打开设置",
         "mcp": "打开 MCP 面板",
         "skill": "打开 Skill 列表",
-        "import": "导入 cc-switch 配置"
+        "gemini": "打开 Gemini CLI 管理",
+        "import": "导入 cc-switch 配置",
+        "duplicate": "复制供应商"
       },
       "importConfig": {
         "tooltip": "导入 {providers} 个供应商 · {servers} 个 MCP 服务器",
@@ -353,6 +355,61 @@
         "deleteMessage": "确认删除 {name} 吗？操作不可撤销"
       }
     },
+    "gemini": {
+      "hero": {
+        "eyebrow": "Gemini CLI 管理",
+        "title": "管理 Gemini 供应商",
+        "lead": "配置 Gemini CLI 的 API 供应商，支持 Google 官方和第三方中转服务。"
+      },
+      "controls": {
+        "back": "返回主页",
+        "settings": "打开设置",
+        "refresh": "刷新",
+        "create": "新增供应商"
+      },
+      "status": {
+        "enabled": "已启用",
+        "disabled": "未配置",
+        "active": "当前使用"
+      },
+      "auth": {
+        "oauth": "OAuth 认证",
+        "apiKey": "API Key 认证"
+      },
+      "category": {
+        "official": "官方",
+        "thirdParty": "第三方",
+        "custom": "自定义"
+      },
+      "presets": {
+        "title": "预设供应商"
+      },
+      "providers": {
+        "title": "已配置的供应商"
+      },
+      "list": {
+        "loading": "加载中...",
+        "empty": "暂无配置的供应商，点击预设卡片快速添加",
+        "edit": "编辑",
+        "delete": "删除"
+      },
+      "actions": {
+        "switch": "切换"
+      },
+      "form": {
+        "createTitle": "新增 Gemini 供应商",
+        "editTitle": "编辑 Gemini 供应商",
+        "deleteTitle": "删除供应商",
+        "deleteMessage": "确认删除 {name} 吗？操作不可撤销",
+        "name": "供应商名称",
+        "baseUrl": "API 地址",
+        "apiKey": "API 密钥",
+        "model": "默认模型",
+        "cancel": "取消",
+        "save": "保存",
+        "delete": "删除"
+      }
+    },
     "skill": {
       "hero": {
         "eyebrow": "Skill 仓库",
@@ -419,6 +476,25 @@
         "invalid": "组合无效，请包含修饰键"
       },
       "placeholder": "点击并按下组合键"
+    },
+    "deeplink": {
+      "title": "从深度链接导入供应商",
+      "preview": "请确认以下信息后点击导入：",
+      "import": "导入",
+      "importing": "正在导入...",
+      "success": "导入成功！",
+      "error": {
+        "title": "导入失败"
+      },
+      "field": {
+        "name": "名称",
+        "app": "平台",
+        "homepage": "主页",
+        "endpoint": "端点",
+        "apiKey": "API密钥",
+        "model": "模型",
+        "notes": "备注"
+      }
     }
   }
 }

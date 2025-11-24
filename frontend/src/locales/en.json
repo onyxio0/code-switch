@@ -83,7 +83,9 @@
         "settings": "Open settings",
         "mcp": "Open MCP panel",
         "skill": "Open skill catalog",
-        "import": "Import cc-switch config"
+        "gemini": "Open Gemini CLI manager",
+        "import": "Import cc-switch config",
+        "duplicate": "Duplicate provider"
       },
       "importConfig": {
         "tooltip": "Import {providers} providers · {servers} MCP servers",
@@ -350,6 +352,61 @@
         "deleteMessage": "Are you sure you want to delete {name}? This action cannot be undone."
       }
     },
+    "gemini": {
+      "hero": {
+        "eyebrow": "Gemini CLI Manager",
+        "title": "Manage Gemini Providers",
+        "lead": "Configure API providers for Gemini CLI, supporting Google Official and third-party relay services."
+      },
+      "controls": {
+        "back": "Back to home",
+        "settings": "Open settings",
+        "refresh": "Refresh",
+        "create": "Add provider"
+      },
+      "status": {
+        "enabled": "Enabled",
+        "disabled": "Not configured",
+        "active": "Active"
+      },
+      "auth": {
+        "oauth": "OAuth Authentication",
+        "apiKey": "API Key Authentication"
+      },
+      "category": {
+        "official": "Official",
+        "thirdParty": "Third Party",
+        "custom": "Custom"
+      },
+      "presets": {
+        "title": "Preset Providers"
+      },
+      "providers": {
+        "title": "Configured Providers"
+      },
+      "list": {
+        "loading": "Loading...",
+        "empty": "No providers configured. Click a preset card to add one.",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "actions": {
+        "switch": "Switch"
+      },
+      "form": {
+        "createTitle": "Add Gemini Provider",
+        "editTitle": "Edit Gemini Provider",
+        "deleteTitle": "Delete Provider",
+        "deleteMessage": "Are you sure you want to delete {name}? This action cannot be undone.",
+        "name": "Provider name",
+        "baseUrl": "API URL",
+        "apiKey": "API Key",
+        "model": "Default model",
+        "cancel": "Cancel",
+        "save": "Save",
+        "delete": "Delete"
+      }
+    },
     "skill": {
       "hero": {
         "eyebrow": "Skill Library",
@@ -416,6 +473,25 @@
         "invalid": "Invalid combination, include a modifier"
       },
       "placeholder": "Press keys to record"
+    },
+    "deeplink": {
+      "title": "Import Provider from Deep Link",
+      "preview": "Please confirm the following information before importing:",
+      "import": "Import",
+      "importing": "Importing...",
+      "success": "Import successful!",
+      "error": {
+        "title": "Import failed"
+      },
+      "field": {
+        "name": "Name",
+        "app": "Platform",
+        "homepage": "Homepage",
+        "endpoint": "Endpoint",
+        "apiKey": "API Key",
+        "model": "Model",
+        "notes": "Notes"
+      }
     }
   }
 }

@@ -236,6 +236,13 @@
           </button>
           <button
             class="ghost-icon"
+            :data-tooltip="t('components.main.controls.gemini')"
+            @click="goToGemini"
+          >
+            <span class="icon-svg" v-html="geminiIcon" aria-hidden="true"></span>
+          </button>
+          <button
+            class="ghost-icon"
             :data-tooltip="t('components.main.logs.view')"
             @click="goToLogs"
           >
@@ -442,6 +449,18 @@
                 <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
+            <button class="ghost-icon" :data-tooltip="t('components.main.controls.duplicate')" @click="handleDuplicate(card)">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
             <button class="ghost-icon" @click="requestRemove(card)">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path
@@ -646,7 +665,7 @@ import BaseModal from '../common/BaseModal.vue'
 import BaseInput from '../common/BaseInput.vue'
 import ModelWhitelistEditor from '../common/ModelWhitelistEditor.vue'
 import ModelMappingEditor from '../common/ModelMappingEditor.vue'
-import { LoadProviders, SaveProviders } from '../../../bindings/codeswitch/services/providerservice'
+import { LoadProviders, SaveProviders, DuplicateProvider } from '../../../bindings/codeswitch/services/providerservice'
 import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
 import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
 import { fetchCurrentVersion } from '../../services/version'
@@ -701,6 +720,7 @@ let updateTimer: number | undefined
 const showHeatmap = ref(true)
 const showHomeTitle = ref(true)
 const mcpIcon = lobeIcons['mcp'] ?? ''
+const geminiIcon = lobeIcons['gemini'] ?? ''
 const appVersion = ref('')
 const hasUpdateAvailable = ref(false)
 const updateReady = ref(false)
@@ -1352,6 +1372,10 @@ const goToSkill = () => {
   router.push('/skill')
 }
 
+const goToGemini = () => {
+  router.push('/gemini')
+}
+
 const goToSettings = () => {
   router.push('/settings')
 }
@@ -1556,6 +1580,18 @@ const requestRemove = (card: AutomationCard) => {
   confirmState.card = card
   confirmState.tabId = activeTab.value
   confirmState.open = true
+}
+
+// 复制供应商
+const handleDuplicate = async (card: AutomationCard) => {
+  try {
+    const newProvider = await DuplicateProvider(activeTab.value, card.id)
+    // 刷新列表以显示新副本
+    await loadProvidersFromDisk()
+    console.log(`[Duplicate] Provider "${card.name}" duplicated as "${newProvider.name}"`)
+  } catch (error) {
+    console.error('[Duplicate] Failed to duplicate provider:', error)
+  }
 }
 
 const confirmRemove = () => {
