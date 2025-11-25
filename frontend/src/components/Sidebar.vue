@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
@@ -9,14 +9,45 @@ const { t } = useI18n()
 
 // 侧边栏收起状态
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed'
+const VISITED_PAGES_KEY = 'visited-pages'
 const isCollapsed = ref(false)
+const visitedPages = ref<Set<string>>(new Set())
 
 onMounted(() => {
+  // 加载侧边栏状态
   const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
   if (saved !== null) {
     isCollapsed.value = saved === 'true'
   }
+  // 加载已访问页面
+  const visitedJson = localStorage.getItem(VISITED_PAGES_KEY)
+  if (visitedJson) {
+    try {
+      visitedPages.value = new Set(JSON.parse(visitedJson))
+    } catch {
+      visitedPages.value = new Set()
+    }
+  }
+  // 标记当前页面为已访问
+  markAsVisited(route.path)
 })
+
+// 监听路由变化，标记为已访问
+watch(() => route.path, (newPath) => {
+  markAsVisited(newPath)
+})
+
+function markAsVisited(path: string) {
+  if (!visitedPages.value.has(path)) {
+    visitedPages.value.add(path)
+    localStorage.setItem(VISITED_PAGES_KEY, JSON.stringify([...visitedPages.value]))
+  }
+}
+
+// 判断是否显示 NEW 徽章（仅在未访问时显示）
+function shouldShowNew(item: NavItem): boolean {
+  return item.isNew === true && !visitedPages.value.has(item.path)
+}
 
 const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value
@@ -122,7 +153,7 @@ const navigate = (path: string) => {
         </svg>
 
         <span class="nav-label" v-if="!isCollapsed">{{ t(item.labelKey) }}</span>
-        <span v-if="item.isNew && !isCollapsed" class="new-badge">NEW</span>
+        <span v-if="shouldShowNew(item) && !isCollapsed" class="new-badge">NEW</span>
       </button>
     </div>
 

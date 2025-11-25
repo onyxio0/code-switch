@@ -400,6 +400,7 @@ html.dark code.detail-value {
 
 .refresh-btn {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   padding: 12px 24px;
@@ -411,6 +412,8 @@ html.dark code.detail-value {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .refresh-btn:hover:not(:disabled) {
@@ -425,6 +428,7 @@ html.dark code.detail-value {
 .refresh-btn svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 .refresh-btn svg.spin {

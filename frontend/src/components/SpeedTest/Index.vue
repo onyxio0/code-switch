@@ -300,11 +300,6 @@ function getLatencyText(result: EndpointLatency | null): string {
   flex-shrink: 0;
 }
 
-.add-btn {
-  justify-content: center;
-  line-height: 1;
-}
-
 .list-header {
   display: flex;
   align-items: center;
@@ -348,11 +343,6 @@ function getLatencyText(result: EndpointLatency | null): string {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
-}
-
-.test-btn {
-  justify-content: center;
-  line-height: 1;
 }
 
 .test-btn.testing svg.spin {

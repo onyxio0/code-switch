@@ -566,12 +566,6 @@ html.dark .action-btn:hover {
   flex-shrink: 0;
 }
 
-.primary-btn,
-.secondary-btn {
-  justify-content: center;
-  line-height: 1;
-}
-
 /* Modal */
 .modal-overlay {
   position: fixed;
