@@ -621,6 +621,37 @@ func (prs *ProviderRelayService) geminiProxyHandler(apiVersion string) gin.Handl
 
 		fmt.Printf("[Gemini] 使用 Provider: %s | BaseURL: %s\n", activeProvider.Name, activeProvider.BaseURL)
 
+		// 创建请求日志
+		requestLog := &ReqeustLog{
+			Provider:     activeProvider.Name,
+			Platform:     "gemini",
+			Model:        activeProvider.Model,
+			IsStream:     isStream,
+			InputTokens:  0,
+			OutputTokens: 0,
+		}
+
+		// 记录开始时间并在函数结束时保存日志
+		start := time.Now()
+		defer func() {
+			requestLog.DurationSec = time.Since(start).Seconds()
+			if _, err := xdb.New("request_log").Insert(xdb.Record{
+				"platform":            requestLog.Platform,
+				"model":               requestLog.Model,
+				"provider":            requestLog.Provider,
+				"http_code":           requestLog.HttpCode,
+				"input_tokens":        requestLog.InputTokens,
+				"output_tokens":       requestLog.OutputTokens,
+				"cache_create_tokens": requestLog.CacheCreateTokens,
+				"cache_read_tokens":   requestLog.CacheReadTokens,
+				"reasoning_tokens":    requestLog.ReasoningTokens,
+				"is_stream":           boolToInt(requestLog.IsStream),
+				"duration_sec":        requestLog.DurationSec,
+			}); err != nil {
+				fmt.Printf("[Gemini] 写入 request_log 失败: %v\n", err)
+			}
+		}()
+
 		// 构建目标 URL
 		targetURL := strings.TrimSuffix(activeProvider.BaseURL, "/") + endpoint
 		fmt.Printf("[Gemini] 转发到: %s\n", targetURL)
@@ -628,6 +659,7 @@ func (prs *ProviderRelayService) geminiProxyHandler(apiVersion string) gin.Handl
 		// 创建 HTTP 请求
 		req, err := http.NewRequest("POST", targetURL, bytes.NewReader(bodyBytes))
 		if err != nil {
+			requestLog.HttpCode = http.StatusInternalServerError
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("创建请求失败: %v", err)})
 			return
 		}
@@ -645,43 +677,22 @@ func (prs *ProviderRelayService) geminiProxyHandler(apiVersion string) gin.Handl
 			req.Header.Set("x-goog-api-key", activeProvider.APIKey)
 		}
 
-		// 记录开始时间
-		startTime := time.Now()
-
-		// 创建请求日志
-		usage := &ReqeustLog{
-			Provider:     activeProvider.Name,
-			Platform:     "gemini",
-			Model:        activeProvider.Model,
-			IsStream:     isStream,
-			InputTokens:  0,
-			OutputTokens: 0,
-		}
-
 		// 发送请求
 		client := &http.Client{Timeout: 300 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
-			duration := time.Since(startTime).Seconds()
-			usage.DurationSec = duration
-			_ = SaveRequestLog(usage)
-
+			requestLog.HttpCode = http.StatusBadGateway
 			c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("请求失败: %v", err)})
 			return
 		}
 		defer resp.Body.Close()
 
-		// 计算耗时
-		duration := time.Since(startTime).Seconds()
-		usage.DurationSec = duration
-
-		fmt.Printf("[Gemini] Provider %s 响应: %d | 耗时: %.2fs\n", activeProvider.Name, resp.StatusCode, duration)
+		requestLog.HttpCode = resp.StatusCode
+		fmt.Printf("[Gemini] Provider %s 响应: %d | 耗时: %.2fs\n", activeProvider.Name, resp.StatusCode, time.Since(start).Seconds())
 
 		// 如果不是成功响应，直接返回错误
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			errorBody, _ := io.ReadAll(resp.Body)
-			_ = SaveRequestLog(usage)
-
 			c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), errorBody)
 			return
 		}
@@ -697,18 +708,13 @@ func (prs *ProviderRelayService) geminiProxyHandler(apiVersion string) gin.Handl
 
 		// 处理响应
 		if isStream {
-			// 流式响应 - 使用 SSE 钩子
-			hook := func(data []byte) (bool, []byte) {
-				// TODO: 解析 Gemini 的 token usage
-				// Gemini SSE 格式可能与 Claude 不同，需要根据实际 API 调整
-				return true, data
-			}
-
-			if err := xrequest.StreamTransfer(c.Writer, resp.Body, hook); err != nil {
+			// 流式响应 - 直接复制（暂不解析 token usage）
+			c.Writer.Flush()
+			if _, err := io.Copy(c.Writer, resp.Body); err != nil {
 				fmt.Printf("[Gemini] 流式传输失败: %v\n", err)
 			}
 		} else {
-			// 非流式响应 - 直接复制
+			// 非流式响应 - 读取并返回
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "读取响应失败"})
@@ -721,9 +727,6 @@ func (prs *ProviderRelayService) geminiProxyHandler(apiVersion string) gin.Handl
 			c.Data(resp.StatusCode, resp.Header.Get("Content-Type"), body)
 		}
 
-		// 保存请求日志
-		_ = SaveRequestLog(usage)
-
-		fmt.Printf("[Gemini] ✓ 请求完成 | Provider: %s | 耗时: %.2fs\n", activeProvider.Name, duration)
+		fmt.Printf("[Gemini] ✓ 请求完成 | Provider: %s | 耗时: %.2fs\n", activeProvider.Name, time.Since(start).Seconds())
 	}
 }
