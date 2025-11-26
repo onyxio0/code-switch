@@ -26,10 +26,25 @@
 
 以上流程让 cli 看到的是一个固定的本地地址，而真实请求会被 Code Switch 透明地路由到你在应用里维护的供应商列表
 
-## 下载
+## 安装
 
-[macOS](https://github.com/daodao97/code-swtich/releases) | [windows](https://github.com/daodao97/code-swtich/releases) 
+### Homebrew (推荐 - macOS)
 
+```bash
+# 添加 tap
+brew tap onyxio0/tap
+
+# 安装 Code Switch
+brew install --cask code-switch
+
+# 或者一行命令直接安装
+brew install --cask onyxio0/tap/code-switch
+```
+
+### 手动下载
+
+- [macOS 下载](https://github.com/onyxio0/code-switch/releases)
+- [Windows 下载](https://github.com/onyxio0/code-switch/releases)
 
 ## 预览
 ![亮色主界面](resources/images/code-switch.png)
