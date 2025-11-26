@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -157,6 +158,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ github.ref_name || 'v0.1' }}
           files: release-assets/*
           body: |
             ## 新增功能
@@ -180,7 +182,13 @@ jobs:
 
             ## 安装说明
 
-            - **Windows**：下载 `codeswitch-amd64-installer.exe` 运行安装，或下载 `codeswitch.exe` 直接运行
+            ### Homebrew (推荐 - macOS)
+            ```bash
+            brew install --cask onyxio0/tap/code-switch
+            ```
+
+            ### 手动下载
+            - **Windows**：下载 `CodeSwitch-amd64-installer.exe` 运行安装，或下载 `CodeSwitch.exe` 直接运行
             - **macOS (Apple Silicon)**：下载 `codeswitch-macos-arm64.zip`
             - **macOS (Intel)**：下载 `codeswitch-macos-amd64.zip`
           draft: false
