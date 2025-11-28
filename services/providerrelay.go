@@ -351,19 +351,35 @@ func (prs *ProviderRelayService) forwardRequest(
 	start := time.Now()
 	defer func() {
 		requestLog.DurationSec = time.Since(start).Seconds()
-		if _, err := xdb.New("request_log").Insert(xdb.Record{
-			"platform":            requestLog.Platform,
-			"model":               requestLog.Model,
-			"provider":            requestLog.Provider,
-			"http_code":           requestLog.HttpCode,
-			"input_tokens":        requestLog.InputTokens,
-			"output_tokens":       requestLog.OutputTokens,
-			"cache_create_tokens": requestLog.CacheCreateTokens,
-			"cache_read_tokens":   requestLog.CacheReadTokens,
-			"reasoning_tokens":    requestLog.ReasoningTokens,
-			"is_stream":           boolToInt(requestLog.IsStream),
-			"duration_sec":        requestLog.DurationSec,
-		}); err != nil {
+
+		// 使用原生数据库连接，避免 xdb.New() 的事务封装导致嵌套事务错误
+		db, err := xdb.DB("default")
+		if err != nil {
+			fmt.Printf("写入 request_log 失败: 获取数据库连接失败: %v\n", err)
+			return
+		}
+
+		_, err = db.Exec(`
+			INSERT INTO request_log (
+				platform, model, provider, http_code,
+				input_tokens, output_tokens, cache_create_tokens, cache_read_tokens,
+				reasoning_tokens, is_stream, duration_sec
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`,
+			requestLog.Platform,
+			requestLog.Model,
+			requestLog.Provider,
+			requestLog.HttpCode,
+			requestLog.InputTokens,
+			requestLog.OutputTokens,
+			requestLog.CacheCreateTokens,
+			requestLog.CacheReadTokens,
+			requestLog.ReasoningTokens,
+			boolToInt(requestLog.IsStream),
+			requestLog.DurationSec,
+		)
+
+		if err != nil {
 			fmt.Printf("写入 request_log 失败: %v\n", err)
 		}
 	}()
