@@ -826,3 +826,38 @@ func (s *GeminiService) DuplicateProvider(sourceID string) (*GeminiProvider, err
 
 	return &cloned, nil
 }
+
+// ReorderProviders 重新排序供应商（按传入的 ID 顺序）
+func (s *GeminiService) ReorderProviders(ids []string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(ids) == 0 {
+		return nil
+	}
+
+	// 创建 ID -> Provider 的映射
+	providerMap := make(map[string]GeminiProvider)
+	for _, p := range s.providers {
+		providerMap[p.ID] = p
+	}
+
+	// 按传入的 ID 顺序重新排列
+	newProviders := make([]GeminiProvider, 0, len(ids))
+	for _, id := range ids {
+		if p, ok := providerMap[id]; ok {
+			newProviders = append(newProviders, p)
+			delete(providerMap, id) // 标记已处理
+		}
+	}
+
+	// 如果有遗漏的 provider（不在 ids 中），追加到末尾
+	for _, p := range s.providers {
+		if _, ok := providerMap[p.ID]; ok {
+			newProviders = append(newProviders, p)
+		}
+	}
+
+	s.providers = newProviders
+	return s.saveProviders()
+}

@@ -83,3 +83,8 @@ export function GetStatus(): Promise<GeminiStatus> {
 export function CreateProviderFromPreset(presetName: string, apiKey: string): Promise<GeminiProvider> {
   return Call.ByName('codeswitch/services.GeminiService.CreateProviderFromPreset', presetName, apiKey)
 }
+
+// 重新排序供应商（按传入的 ID 顺序）
+export function ReorderProviders(ids: string[]): Promise<void> {
+  return Call.ByName('codeswitch/services.GeminiService.ReorderProviders', ids)
+}

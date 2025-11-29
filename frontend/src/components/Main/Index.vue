@@ -606,7 +606,7 @@ import BaseInput from '../common/BaseInput.vue'
 import ModelWhitelistEditor from '../common/ModelWhitelistEditor.vue'
 import ModelMappingEditor from '../common/ModelMappingEditor.vue'
 import { LoadProviders, SaveProviders, DuplicateProvider } from '../../../bindings/codeswitch/services/providerservice'
-import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider, AddProvider as AddGeminiProvider, DeleteProvider as DeleteGeminiProvider } from '../../../bindings/codeswitch/services/geminiservice'
+import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider, AddProvider as AddGeminiProvider, DeleteProvider as DeleteGeminiProvider, ReorderProviders as ReorderGeminiProviders } from '../../../bindings/codeswitch/services/geminiservice'
 import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
 import { fetchGeminiProxyStatus, enableGeminiProxy, disableGeminiProxy } from '../../services/geminiSettings'
 import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
@@ -1047,9 +1047,23 @@ const persistProviders = async (tabId: ProviderTab) => {
         }
       }
 
-      // 4. 刷新缓存
+      // 4. 刷新缓存以获取最新的 ID
       const updatedProviders = await GetGeminiProviders()
       geminiProvidersCache.value = updatedProviders
+
+      // 5. 保存排序：按 cards.gemini 的顺序构建 ID 列表
+      const orderedIds: string[] = []
+      for (const card of cards.gemini) {
+        const provider = updatedProviders.find(p => p.name === card.name)
+        if (provider) {
+          orderedIds.push(provider.id)
+        }
+      }
+      if (orderedIds.length > 0) {
+        await ReorderGeminiProviders(orderedIds)
+        // 重新获取排序后的数据
+        geminiProvidersCache.value = await GetGeminiProviders()
+      }
     } else {
       await SaveProviders(tabId, serializeProviders(cards[tabId]))
     }
