@@ -159,36 +159,18 @@ jobs:
         with:
           files: release-assets/*
           body: |
-            ## 🔧 功能优化
-
-            ### 拉黑模式行为改进
-            - **拉黑功能开启时**：只使用第一个未被拉黑的 Provider，失败直接返回错误（不自动降级）
-            - **拉黑功能关闭时**：保持自动降级行为，失败自动尝试下一个 Provider
-
-            ### 拉黑响应速度优化
-            - **去重窗口从 30秒 改为 2秒**，大幅提升拉黑响应速度
-            - 阈值 3 次：最快 4 秒触发拉黑（原需 60 秒）
-            - 阈值 5 次：最快 8 秒触发拉黑（原需 120 秒）
-
             ## 🐛 Bug 修复
 
-            ### Windows 安装版自动更新修复
-            - 修复安装版自动更新报错 "requires elevation" 的问题
-            - 使用 PowerShell 请求 UAC 管理员权限执行安装器
+            ### 供应商添加后刷新消失问题修复
+            - **核心修复**：修复 Gemini 供应商添加后点击刷新消失的问题
+              - 新添加的 Gemini 供应商现在会正确调用 `AddProvider` 保存到后端
+              - 完善 Gemini 供应商的删除同步逻辑
+            - **Claude/Codex 修复**：修复供应商保存时机问题
+              - 保存操作现在正确等待完成后再继续，避免刷新时读取到旧数据
 
-            ### GitHub 链接修复
-            - 首页 GitHub 图标链接指向正确的仓库地址
-
-            ### 拉黑阈值修复
-            - 修复 UI 设置的失败阈值不生效的问题
-            - 阈值统一从数据库读取，与 UI 设置保持同步
-
-            ### 等级拉黑开关修复
-            - 修复等级拉黑开关不生效的问题
-
-            ### UI 修复
-            - 修复提示词管理页面 Tab 文字不居中的问题
-            - 修复环境变量检测页面 Tab 文字不居中的问题
+            ### 代码质量改进
+            - 所有供应商操作（添加、删除、排序）现在都使用 `await` 确保操作完成
+            - Gemini 供应商缓存在保存后自动刷新，保持数据一致性
 
             ## 📦 安装说明
 
@@ -196,7 +178,7 @@ jobs:
             - **macOS (Apple Silicon)**：下载 `codeswitch-macos-arm64.zip`，解压后拖入 Applications 文件夹
             - **macOS (Intel)**：下载 `codeswitch-macos-amd64.zip`，解压后拖入 Applications 文件夹
 
-            **完整更新日志**: https://github.com/Rogers-F/code-switch-R/compare/v1.1.21...v1.1.22
+            **完整更新日志**: https://github.com/Rogers-F/code-switch-R/compare/v1.1.22...v1.1.23
           draft: false
           prerelease: false
         env:

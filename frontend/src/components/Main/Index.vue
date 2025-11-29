@@ -606,7 +606,7 @@ import BaseInput from '../common/BaseInput.vue'
 import ModelWhitelistEditor from '../common/ModelWhitelistEditor.vue'
 import ModelMappingEditor from '../common/ModelMappingEditor.vue'
 import { LoadProviders, SaveProviders, DuplicateProvider } from '../../../bindings/codeswitch/services/providerservice'
-import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider } from '../../../bindings/codeswitch/services/geminiservice'
+import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider, AddProvider as AddGeminiProvider, DeleteProvider as DeleteGeminiProvider } from '../../../bindings/codeswitch/services/geminiservice'
 import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
 import { fetchGeminiProxyStatus, enableGeminiProxy, disableGeminiProxy } from '../../services/geminiSettings'
 import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
@@ -1016,13 +1016,40 @@ const persistProviders = async (tabId: ProviderTab) => {
   try {
     if (tabId === 'gemini') {
       // Gemini 使用独立的保存逻辑
-      for (let i = 0; i < cards.gemini.length; i++) {
-        const card = cards.gemini[i]
-        const original = geminiProvidersCache.value[i]
-        if (original) {
-          await UpdateGeminiProvider(cardToGemini(card, original))
+      // 1. 收集当前卡片的 name 集合
+      const currentNames = new Set(cards.gemini.map(c => c.name))
+
+      // 2. 删除不在当前卡片中的 provider
+      for (const cached of geminiProvidersCache.value) {
+        if (!currentNames.has(cached.name)) {
+          await DeleteGeminiProvider(cached.id)
         }
       }
+
+      // 3. 添加或更新 provider
+      for (const card of cards.gemini) {
+        const original = geminiProvidersCache.value.find(p => p.name === card.name)
+
+        if (original) {
+          // 已存在的 provider，更新
+          await UpdateGeminiProvider(cardToGemini(card, original))
+        } else {
+          // 新添加的 provider，调用 AddProvider
+          const newProvider: GeminiProvider = {
+            id: `gemini-${Date.now()}`,
+            name: card.name,
+            baseUrl: card.apiUrl,
+            apiKey: card.apiKey,
+            websiteUrl: card.officialSite,
+            enabled: card.enabled,
+          }
+          await AddGeminiProvider(newProvider)
+        }
+      }
+
+      // 4. 刷新缓存
+      const updatedProviders = await GetGeminiProviders()
+      geminiProvidersCache.value = updatedProviders
     } else {
       await SaveProviders(tabId, serializeProviders(cards[tabId]))
     }
@@ -1531,7 +1558,7 @@ const closeConfirm = () => {
   confirmState.card = null
 }
 
-const submitModal = () => {
+const submitModal = async () => {
   const list = cards[modalState.tabId]
   if (!list) return
   const name = modalState.form.name.trim()
@@ -1559,7 +1586,7 @@ const submitModal = () => {
       supportedModels: modalState.form.supportedModels || {},
       modelMapping: modalState.form.modelMapping || {},
     })
-    void persistProviders(modalState.tabId)
+    await persistProviders(modalState.tabId)
   } else {
     const newCard: AutomationCard = {
       id: Date.now(),
@@ -1576,7 +1603,7 @@ const submitModal = () => {
       modelMapping: modalState.form.modelMapping || {},
     }
     list.push(newCard)
-    void persistProviders(modalState.tabId)
+    await persistProviders(modalState.tabId)
   }
 
   closeModal()
@@ -1586,13 +1613,13 @@ const configure = (card: AutomationCard) => {
   openEditModal(card)
 }
 
-const remove = (id: number, tabId: ProviderTab = activeTab.value) => {
+const remove = async (id: number, tabId: ProviderTab = activeTab.value) => {
   const list = cards[tabId]
   if (!list) return
   const index = list.findIndex((card) => card.id === id)
   if (index > -1) {
     list.splice(index, 1)
-    void persistProviders(tabId)
+    await persistProviders(tabId)
   }
 }
 
@@ -1645,9 +1672,9 @@ const handleDuplicate = async (card: AutomationCard) => {
   }
 }
 
-const confirmRemove = () => {
+const confirmRemove = async () => {
   if (!confirmState.card) return
-  remove(confirmState.card.id, confirmState.tabId)
+  await remove(confirmState.card.id, confirmState.tabId)
   closeConfirm()
 }
 
@@ -1655,7 +1682,7 @@ const onDragStart = (id: number) => {
   draggingId.value = id
 }
 
-const onDrop = (targetId: number) => {
+const onDrop = async (targetId: number) => {
   if (draggingId.value === null || draggingId.value === targetId) return
   const currentTab = activeTab.value
   const list = cards[currentTab]
@@ -1667,7 +1694,7 @@ const onDrop = (targetId: number) => {
   const newIndex = fromIndex < toIndex ? toIndex - 1 : toIndex
   list.splice(newIndex, 0, moved)
   draggingId.value = null
-  void persistProviders(currentTab)
+  await persistProviders(currentTab)
 }
 
 const onDragEnd = () => {
