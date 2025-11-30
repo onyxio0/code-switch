@@ -161,9 +161,13 @@ jobs:
           body: |
             ## 🐛 Bug 修复
 
-            ### Gemini 供应商拖拽排序修复
-            - **拖拽排序**：Gemini 供应商现在支持拖拽排序，与 Claude Code 和 Codex 行为一致
-            - **后端支持**：添加 `ReorderProviders` 方法保存供应商顺序
+            ### 修复 SQLite SQLITE_BUSY 数据库锁死问题
+            - **问题**：Gemini 请求日志写入和黑名单自动恢复操作频繁出现 `database is locked (5) (SQLITE_BUSY)` 错误
+            - **原因**：DSN 参数 `_journal_mode=WAL` 和 `_busy_timeout` 未被 `modernc.org/sqlite` 驱动正确解析
+            - **修复**：
+              - 显式执行 `PRAGMA journal_mode = WAL`（启用 WAL 模式，允许读写并发）
+              - 显式执行 `PRAGMA busy_timeout = 30000`（30 秒等待，避免立即返回错误）
+              - 启动时输出日志确认 PRAGMA 设置生效
 
             ## 📦 安装说明
 
@@ -171,7 +175,7 @@ jobs:
             - **macOS (Apple Silicon)**：下载 `codeswitch-macos-arm64.zip`，解压后拖入 Applications 文件夹
             - **macOS (Intel)**：下载 `codeswitch-macos-amd64.zip`，解压后拖入 Applications 文件夹
 
-            **完整更新日志**: https://github.com/Rogers-F/code-switch-R/compare/v1.1.24...v1.1.25
+            **完整更新日志**: https://github.com/Rogers-F/code-switch-R/compare/v1.1.25...v1.1.26
           draft: false
           prerelease: false
         env:
