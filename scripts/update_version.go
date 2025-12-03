@@ -136,11 +136,13 @@ func updateUpdaterManifest(path, version string) error {
 	lines := strings.Split(contentStr, "\n")
 	inAssemblyIdentity := false
 	for i, line := range lines {
-		if strings.Contains(line, "<assemblyIdentity") {
+		trimmedLine := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmedLine, "<assemblyIdentity") {
 			inAssemblyIdentity = true
 		}
-		if inAssemblyIdentity && strings.Contains(line, `version="`) {
-			// 只替换这一行的 version 值（不在 XML 声明中）
+		// 只在 assemblyIdentity 标签内，且不是 XML 声明行时替换 version
+		if inAssemblyIdentity && strings.Contains(line, `version="`) && !strings.HasPrefix(trimmedLine, "<?xml") {
+			// 只替换这一行的 version 值
 			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
 			lines[i] = re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
 		}
