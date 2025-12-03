@@ -144,7 +144,8 @@ func updateUpdaterManifest(path, version string) error {
 			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
 			// 使用更精确的正则表达式，匹配 4 个空格 + version="值"
 			re := regexp.MustCompile(`(    version=")[^"]+(")`)
-			newLine := re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
+			// 使用 ReplaceAllString，$1 和 $2 是正则表达式的反向引用
+			newLine := re.ReplaceAllString(line, fmt.Sprintf(`${1}%s${2}`, manifestVersion))
 			lines[i] = newLine
 		}
 		// 检查是否离开 assemblyIdentity 标签
