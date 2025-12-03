@@ -51,9 +51,9 @@ generated="${appimages[0]}"
 lower_app_name=$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
 expected="${lower_app_name}-${ARCH}.AppImage"
 
-if [[ -f "${expected}" ]]; then
-    echo "AppImage already at expected name: ${expected}"
-else
-    cp "${generated}" "${expected}"
-    echo "Copied ${generated} -> ${expected}"
+# Keep AppImage in current build directory with expected name
+if [[ "${generated}" != "${expected}" ]]; then
+    mv "${generated}" "${expected}"
 fi
+
+echo "AppImage ready at $(pwd)/${expected}"
