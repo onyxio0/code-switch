@@ -95,11 +95,14 @@ func updatePlistFile(path, version string) error {
 		return err
 	}
 
-	// 更新 CFBundleVersion 和 CFBundleShortVersionString
-	re1 := regexp.MustCompile(`(<key>CFBundleVersion</key>\s+<string>)[^<]+(</string>)`)
-	contentStr := re1.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
+	contentStr := string(content)
 
-	re2 := regexp.MustCompile(`(<key>CFBundleShortVersionString</key>\s+<string>)[^<]+(</string>)`)
+	// 更新 CFBundleVersion - 匹配 <key>CFBundleVersion</key> 后面的 <string>版本号</string>
+	re1 := regexp.MustCompile(`(<key>CFBundleVersion</key>\s*<string>)[^<]+(</string>)`)
+	contentStr = re1.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
+
+	// 更新 CFBundleShortVersionString - 匹配 <key>CFBundleShortVersionString</key> 后面的 <string>版本号</string>
+	re2 := regexp.MustCompile(`(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)`)
 	newContent := re2.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
 
 	return ioutil.WriteFile(path, []byte(newContent), 0644)
@@ -173,8 +176,8 @@ func updateNFPMYAML(path, version string) error {
 		return err
 	}
 
-	// 匹配 version: "1.2.5" 格式
-	re := regexp.MustCompile(`(version:\s+")[^"]+(")`)
+	// 匹配 version: "1.2.5" 格式（完整行，避免匹配其他 version）
+	re := regexp.MustCompile(`(^version:\s+")[^"]+(")`)
 	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
 
 	return ioutil.WriteFile(path, []byte(newContent), 0644)
