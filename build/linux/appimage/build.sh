@@ -6,13 +6,15 @@
 set -euxo pipefail
 
 # Define variables
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_NAME}.AppDir"
 ARCH="x86_64"
 if [[ $(uname -m) == *aarch64* ]]; then
     ARCH="aarch64"
 fi
-# Where the AppImage should live (absolute or relative). Default: current dir (builddir).
-BUILD_DIR="${BUILD_DIR:-.}"
+# Where the AppImage should live. Default to script_dir/build (matches Wails builddir).
+BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
+mkdir -p "${BUILD_DIR}"
 
 # Create AppDir structure
 mkdir -p "${APP_DIR}/usr/bin"
