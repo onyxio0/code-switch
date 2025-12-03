@@ -7,6 +7,10 @@ set -euxo pipefail
 
 # Define variables
 APP_DIR="${APP_NAME}.AppDir"
+ARCH="x86_64"
+if [[ $(uname -m) == *aarch64* ]]; then
+    ARCH="aarch64"
+fi
 
 # Create AppDir structure
 mkdir -p "${APP_DIR}/usr/bin"
@@ -30,6 +34,26 @@ else
     ./linuxdeploy-aarch64.AppImage --appdir "${APP_DIR}" --output appimage
 fi
 
-# Rename the generated AppImage
-mv "${APP_NAME}*.AppImage" "${APP_NAME}.AppImage"
+# Ensure an AppImage was produced and provide a lowercase, arch-suffixed filename
+shopt -s nullglob
+appimages=(*.AppImage)
+shopt -u nullglob
 
+if [[ ${#appimages[@]} -eq 0 ]]; then
+    echo "No AppImage was generated" >&2
+    exit 1
+fi
+
+# Pick the first AppImage produced (linuxdeploy typically outputs one)
+generated="${appimages[0]}"
+
+# Normalise name to match Wails expectation: lowercase and arch suffix
+lower_app_name=$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+expected="${lower_app_name}-${ARCH}.AppImage"
+
+if [[ -f "${expected}" ]]; then
+    echo "AppImage already at expected name: ${expected}"
+else
+    cp "${generated}" "${expected}"
+    echo "Copied ${generated} -> ${expected}"
+fi
