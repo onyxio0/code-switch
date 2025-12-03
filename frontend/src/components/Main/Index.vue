@@ -375,7 +375,7 @@ import BaseInput from '../common/BaseInput.vue'
 import ModelWhitelistEditor from '../common/ModelWhitelistEditor.vue'
 import ModelMappingEditor from '../common/ModelMappingEditor.vue'
 import { LoadProviders, SaveProviders, DuplicateProvider } from '../../../bindings/codeswitch/services/providerservice'
-import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider, AddProvider as AddGeminiProvider, DeleteProvider as DeleteGeminiProvider, ReorderProviders as ReorderGeminiProviders } from '../../../bindings/codeswitch/services/geminiservice'
+import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider, AddProvider as AddGeminiProvider, DeleteProvider as DeleteGeminiProvider, ReorderProviders as ReorderGeminiProviders, DuplicateProvider as DuplicateGeminiProvider } from '../../../bindings/codeswitch/services/geminiservice'
 import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
 import { fetchGeminiProxyStatus, enableGeminiProxy, disableGeminiProxy } from '../../services/geminiSettings'
 import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
@@ -1411,10 +1411,7 @@ const handleDuplicate = async (card: AutomationCard) => {
 
       const originalProvider = geminiProvidersCache.value[index]
       // 调用 Gemini 的 DuplicateProvider API（字符串 ID）
-      const newProvider = await Call.ByName(
-        'codeswitch/services.GeminiService.DuplicateProvider',
-        originalProvider.id
-      )
+      const newProvider = await DuplicateGeminiProvider(originalProvider.id)
 
       if (!newProvider) {
         console.warn('[Duplicate] DuplicateProvider 返回空结果，已跳过刷新')
