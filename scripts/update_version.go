@@ -137,16 +137,21 @@ func updateUpdaterManifest(path, version string) error {
 	inAssemblyIdentity := false
 	for i, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmedLine, "<assemblyIdentity") {
+		// 检查是否进入 assemblyIdentity 标签（可能有前导空格）
+		if strings.Contains(trimmedLine, "<assemblyIdentity") {
 			inAssemblyIdentity = true
 		}
 		// 只在 assemblyIdentity 标签内，且不是 XML 声明行时替换 version
-		if inAssemblyIdentity && strings.Contains(line, `version="`) && !strings.HasPrefix(trimmedLine, "<?xml") {
-			// 只替换这一行的 version 值
+		// XML 声明行以 <?xml 开头，assemblyIdentity 内的 version 行以空格开头
+		// 额外检查：确保不是 XML 声明行（第一行且包含 <?xml）
+		isXMLDeclaration := i == 0 && strings.HasPrefix(trimmedLine, "<?xml")
+		if inAssemblyIdentity && strings.Contains(line, `version="`) && !isXMLDeclaration {
+			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
 			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
 			lines[i] = re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
 		}
-		if inAssemblyIdentity && strings.Contains(line, "/>") {
+		// 检查是否离开 assemblyIdentity 标签
+		if inAssemblyIdentity && strings.Contains(trimmedLine, "/>") {
 			break
 		}
 	}
