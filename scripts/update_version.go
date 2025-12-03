@@ -99,17 +99,12 @@ func updatePlistFile(path, version string) error {
 	contentStr := string(content)
 
 	// 更新 CFBundleVersion - 匹配 <key>CFBundleVersion</key> 后面的 <string>版本号</string>
-	// 使用多行模式，确保匹配完整的 key-value 对
 	re1 := regexp.MustCompile(`(<key>CFBundleVersion</key>\s*<string>)[^<]+(</string>)`)
-	if re1.MatchString(contentStr) {
-		contentStr = re1.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
-	}
+	contentStr = re1.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
 
 	// 更新 CFBundleShortVersionString - 匹配 <key>CFBundleShortVersionString</key> 后面的 <string>版本号</string>
 	re2 := regexp.MustCompile(`(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)`)
-	if re2.MatchString(contentStr) {
-		contentStr = re2.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
-	}
+	contentStr = re2.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
 
 	return ioutil.WriteFile(path, []byte(contentStr), 0644)
 }
@@ -142,9 +137,9 @@ func updateUpdaterManifest(path, version string) error {
 			inAssemblyIdentity = true
 		}
 		// 只在 assemblyIdentity 标签内，且不是 XML 声明行时替换 version
-		// XML 声明行以 <?xml 开头，assemblyIdentity 内的 version 行以空格开头
-		// 关键检查：1. 在 assemblyIdentity 标签内 2. 不是 XML 声明行 3. 行以两个空格开头（缩进的属性行）
+		// XML 声明行以 <?xml 开头，assemblyIdentity 内的 version 行以 4 个空格开头（缩进的属性行）
 		isXMLDeclaration := strings.HasPrefix(trimmedLine, "<?xml")
+		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行，且行以 4 个空格开头（缩进的属性行）
 		if inAssemblyIdentity && !isXMLDeclaration && strings.HasPrefix(line, "    ") && strings.Contains(line, `version="`) {
 			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
 			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
