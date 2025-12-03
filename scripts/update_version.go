@@ -139,10 +139,11 @@ func updateUpdaterManifest(path, version string) error {
 		// 只在 assemblyIdentity 标签内，且不是 XML 声明行时替换 version
 		// XML 声明行以 <?xml 开头，assemblyIdentity 内的 version 行以 4 个空格开头（缩进的属性行）
 		isXMLDeclaration := strings.HasPrefix(trimmedLine, "<?xml")
-		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行，且行以 4 个空格开头（缩进的属性行）
+		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行，且行以 4 个空格开头（缩进的属性行），且包含 version="
 		if inAssemblyIdentity && !isXMLDeclaration && strings.HasPrefix(line, "    ") && strings.Contains(line, `version="`) {
 			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
-			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
+			// 使用更精确的正则表达式，确保只匹配 version="..." 中的值部分
+			re := regexp.MustCompile(`(version=")[^"]+(")`)
 			lines[i] = re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
 		}
 		// 检查是否离开 assemblyIdentity 标签
