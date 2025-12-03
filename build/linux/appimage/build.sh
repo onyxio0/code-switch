@@ -11,6 +11,9 @@ ARCH="x86_64"
 if [[ $(uname -m) == *aarch64* ]]; then
     ARCH="aarch64"
 fi
+# Where final AppImage should live (absolute or relative). Keep default at current dir
+# because Wails expects the AppImage inside the builddir it runs in.
+BUILD_DIR="${BUILD_DIR:-.}"
 
 # Create AppDir structure
 mkdir -p "${APP_DIR}/usr/bin"
@@ -51,9 +54,8 @@ generated="${appimages[0]}"
 lower_app_name=$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
 expected="${lower_app_name}-${ARCH}.AppImage"
 
-# Keep AppImage in current build directory with expected name
-if [[ "${generated}" != "${expected}" ]]; then
-    mv "${generated}" "${expected}"
-fi
+target="${BUILD_DIR}/${expected}"
+mkdir -p "$(dirname "${target}")"
+mv "${generated}" "${target}"
 
-echo "AppImage ready at $(pwd)/${expected}"
+echo "AppImage ready at ${target}"
