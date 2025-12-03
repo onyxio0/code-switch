@@ -6,15 +6,11 @@
 set -euxo pipefail
 
 # Define variables
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_NAME}.AppDir"
 ARCH="x86_64"
 if [[ $(uname -m) == *aarch64* ]]; then
     ARCH="aarch64"
 fi
-# Where the AppImage should live. Default to script_dir/build (matches Wails builddir).
-BUILD_DIR="${BUILD_DIR:-${SCRIPT_DIR}/build}"
-mkdir -p "${BUILD_DIR}"
 
 # Create AppDir structure
 mkdir -p "${APP_DIR}/usr/bin"
@@ -38,25 +34,28 @@ else
     ./linuxdeploy-aarch64.AppImage --appdir "${APP_DIR}" --output appimage
 fi
 
-# Ensure an AppImage was produced and provide a lowercase, arch-suffixed filename
+# Ensure an AppImage was produced
 shopt -s nullglob
 appimages=(*.AppImage)
 shopt -u nullglob
 
-if [[ ${#appimages[@]} -eq 0 ]]; then
+# Filter out linuxdeploy itself
+for img in "${appimages[@]}"; do
+    if [[ "$img" != linuxdeploy* ]]; then
+        generated="$img"
+        break
+    fi
+done
+
+if [[ -z "${generated:-}" ]]; then
     echo "No AppImage was generated" >&2
     exit 1
 fi
 
-# Pick the first AppImage produced (linuxdeploy typically outputs one)
-generated="${appimages[0]}"
-
-# Normalise name to match Wails expectation: lowercase and arch suffix
+# Move to output directory with lowercase name and arch suffix
 lower_app_name=$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
-expected="${lower_app_name}-${ARCH}.AppImage"
+target_name="${lower_app_name}-${ARCH}.AppImage"
+mkdir -p "${OUTPUT_DIR}"
+mv -f "${generated}" "${OUTPUT_DIR}/${target_name}"
 
-target="${BUILD_DIR}/${expected}"
-mkdir -p "$(dirname "${target}")"
-cp -f "${generated}" "${target}"
-
-echo "AppImage ready at ${target}"
+echo "AppImage ready at ${OUTPUT_DIR}/${target_name}"
