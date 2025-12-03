@@ -744,6 +744,7 @@ interface GeminiProvider {
   category?: string
   partnerPromotionKey?: string
   enabled: boolean
+  level?: number // 优先级分组 (1-10, 默认 1)
   envConfig?: Record<string, string>
   settingsConfig?: Record<string, any>
 }
@@ -774,6 +775,7 @@ const geminiToCard = (provider: GeminiProvider, index: number): AutomationCard =
   tint: 'rgba(251, 146, 60, 0.18)',
   accent: '#fb923c',
   enabled: provider.enabled,
+  level: provider.level,
 })
 
 // AutomationCard 到 Gemini Provider 的转换
@@ -784,6 +786,7 @@ const cardToGemini = (card: AutomationCard, original: GeminiProvider): GeminiPro
   apiKey: card.apiKey,
   websiteUrl: card.officialSite,
   enabled: card.enabled,
+  level: card.level,
 })
 
 const serializeProviders = (providers: AutomationCard[]) => providers.map((provider) => ({ ...provider }))
@@ -821,6 +824,7 @@ const persistProviders = async (tabId: ProviderTab) => {
             apiKey: card.apiKey,
             websiteUrl: card.officialSite,
             enabled: card.enabled,
+            level: card.level,
           }
           await AddGeminiProvider(newProvider)
         }
