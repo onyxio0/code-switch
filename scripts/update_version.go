@@ -179,4 +179,3 @@ func updateNFPMYAML(path, version string) error {
 
 	return ioutil.WriteFile(path, []byte(newContent), 0644)
 }
-
