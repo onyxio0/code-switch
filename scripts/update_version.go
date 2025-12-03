@@ -131,10 +131,24 @@ func updateUpdaterManifest(path, version string) error {
 
 	// 匹配 <assemblyIdentity ... version="1.0.0.0" ...> 格式（支持多行属性）
 	contentStr := string(content)
-	// 匹配 version="..." 在单独一行（在 <assemblyIdentity 和 /> 之间）
-	// 使用更精确的匹配，确保只替换 version 属性值
-	re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
-	newContent := re.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, manifestVersion))
+	// 只匹配 assemblyIdentity 标签内的 version 属性（避免匹配 XML 声明中的 version="1.0"）
+	// 使用行处理方式，只在 assemblyIdentity 标签范围内替换 version
+	lines := strings.Split(contentStr, "\n")
+	inAssemblyIdentity := false
+	for i, line := range lines {
+		if strings.Contains(line, "<assemblyIdentity") {
+			inAssemblyIdentity = true
+		}
+		if inAssemblyIdentity && strings.Contains(line, `version="`) {
+			// 只替换这一行的 version 值（不在 XML 声明中）
+			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
+			lines[i] = re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
+		}
+		if inAssemblyIdentity && strings.Contains(line, "/>") {
+			break
+		}
+	}
+	newContent := strings.Join(lines, "\n")
 
 	return ioutil.WriteFile(path, []byte(newContent), 0644)
 }
