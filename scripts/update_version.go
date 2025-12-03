@@ -142,9 +142,10 @@ func updateUpdaterManifest(path, version string) error {
 		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行，且行以 4 个空格开头（缩进的属性行），且包含 version="
 		if inAssemblyIdentity && !isXMLDeclaration && strings.HasPrefix(line, "    ") && strings.Contains(line, `version="`) {
 			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
-			// 使用更精确的正则表达式，确保只匹配 version="..." 中的值部分，保留前导空格
-			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
-			lines[i] = re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
+			// 使用更精确的正则表达式，匹配 4 个空格 + version="值"
+			re := regexp.MustCompile(`(    version=")[^"]+(")`)
+			newLine := re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
+			lines[i] = newLine
 		}
 		// 检查是否离开 assemblyIdentity 标签
 		if inAssemblyIdentity && strings.Contains(trimmedLine, "/>") {
