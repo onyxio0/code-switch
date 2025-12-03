@@ -1,13 +1,24 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+)
+
+var (
+	reVersionSemver      = regexp.MustCompile(`^\d+\.\d+\.\d+(?:\.\d+)?$`)
+	reAppVersion         = regexp.MustCompile(`const AppVersion = "v[^"]+"`)
+	reYAMLVersion        = regexp.MustCompile(`(\s+version:\s+)"[^"]+"(\s+# The application version)`)
+	rePlistCFBundle      = regexp.MustCompile(`(<key>CFBundleVersion</key>\s*<string>)[^<]+(</string>)`)
+	rePlistShortVersion  = regexp.MustCompile(`(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)`)
+	reManifestAppVersion = regexp.MustCompile(`(<assemblyIdentity[^>]*name="com\.codeswitch\.app"[^>]*version=")[^"]+(")`)
+	reNSISProductVersion = regexp.MustCompile(`(!define INFO_PRODUCTVERSION\s+")[^"]+(")`)
+	reNFPMVersion        = regexp.MustCompile(`(^version:\s+")[^"]+(")`)
 )
 
 func main() {
@@ -29,6 +40,11 @@ func main() {
 
 	if version == "" {
 		fmt.Fprintf(os.Stderr, "Version cannot be empty\n")
+		os.Exit(1)
+	}
+
+	if !reVersionSemver.MatchString(version) {
+		fmt.Fprintf(os.Stderr, "Invalid version: %s (expect format like 1.2.3 or 1.2.3.4)\n", version)
 		os.Exit(1)
 	}
 
@@ -61,174 +77,141 @@ func main() {
 	fmt.Printf("\n✅ All version files updated successfully!\n")
 }
 
-// 更新 Go 文件中的版本常量
-func updateGoFile(path, version string) error {
-	content, err := ioutil.ReadFile(path)
+// 读-改-写辅助：只有内容变更才写回，避免无意义的 mtime 更新
+func updateFile(path string, transform func([]byte) ([]byte, error)) error {
+	original, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
 
-	// 匹配 const AppVersion = "v1.2.5" 格式
-	re := regexp.MustCompile(`const AppVersion = "v[^"]+"`)
-	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`const AppVersion = "v%s"`, version))
+	updated, err := transform(original)
+	if err != nil {
+		return err
+	}
 
-	return ioutil.WriteFile(path, []byte(newContent), 0644)
+	if bytes.Equal(original, updated) {
+		return nil
+	}
+
+	return os.WriteFile(path, updated, 0644)
+}
+
+// 更新 Go 文件中的版本常量
+func updateGoFile(path, version string) error {
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		newContent := reAppVersion.ReplaceAllString(string(content), fmt.Sprintf(`const AppVersion = "v%s"`, version))
+		return []byte(newContent), nil
+	})
 }
 
 // 更新 YAML 文件（build/config.yml）
 func updateYAMLFile(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	// 匹配 version: "1.2.5" 格式（在 info 部分）
-	re := regexp.MustCompile(`(\s+version:\s+)"[^"]+"(\s+# The application version)`)
-	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`$1"%s"$2`, version))
-
-	return ioutil.WriteFile(path, []byte(newContent), 0644)
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		// 匹配 version: "1.2.5" 格式（在 info 部分）
+		newContent := reYAMLVersion.ReplaceAllString(string(content), fmt.Sprintf(`$1"%s"$2`, version))
+		return []byte(newContent), nil
+	})
 }
 
 // 更新 macOS Info.plist 文件
 func updatePlistFile(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		contentStr := string(content)
 
-	contentStr := string(content)
+		// 更新 CFBundleVersion
+		contentStr = rePlistCFBundle.ReplaceAllString(contentStr, fmt.Sprintf(`${1}%s${2}`, version))
 
-	// 更新 CFBundleVersion - 匹配 <key>CFBundleVersion</key> 后面的 <string>版本号</string>
-	re1 := regexp.MustCompile(`(<key>CFBundleVersion</key>\s*<string>)[^<]+(</string>)`)
-	contentStr = re1.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
+		// 更新 CFBundleShortVersionString
+		contentStr = rePlistShortVersion.ReplaceAllString(contentStr, fmt.Sprintf(`${1}%s${2}`, version))
 
-	// 更新 CFBundleShortVersionString - 匹配 <key>CFBundleShortVersionString</key> 后面的 <string>版本号</string>
-	re2 := regexp.MustCompile(`(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)`)
-	contentStr = re2.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
-
-	return ioutil.WriteFile(path, []byte(contentStr), 0644)
+		return []byte(contentStr), nil
+	})
 }
 
 // 更新 updater.exe.manifest 文件
 func updateUpdaterManifest(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	// 将版本号转换为 4 部分格式 (major.minor.patch.0)
-	// 例如 1.2.5 -> 1.2.5.0
-	versionParts := strings.Split(version, ".")
-	for len(versionParts) < 4 {
-		versionParts = append(versionParts, "0")
-	}
-	manifestVersion := strings.Join(versionParts[:4], ".")
-
-	// 匹配 <assemblyIdentity ... version="1.0.0.0" ...> 格式（支持多行属性）
-	contentStr := string(content)
-	// 只匹配 assemblyIdentity 标签内的 version 属性（避免匹配 XML 声明中的 version="1.0"）
-	// 使用行处理方式，只在 assemblyIdentity 标签范围内替换 version
-	lines := strings.Split(contentStr, "\n")
-	inAssemblyIdentity := false
-	for i, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-		// 检查是否进入 assemblyIdentity 标签（可能有前导空格）
-		if strings.Contains(trimmedLine, "<assemblyIdentity") {
-			inAssemblyIdentity = true
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		// 将版本号转换为 4 部分格式 (major.minor.patch.0)
+		versionParts := strings.Split(version, ".")
+		for len(versionParts) < 4 {
+			versionParts = append(versionParts, "0")
 		}
-		// 只在 assemblyIdentity 标签内，且不是 XML 声明行时替换 version
-		// XML 声明行以 <?xml 开头，assemblyIdentity 内的 version 行以 4 个空格开头（缩进的属性行）
-		isXMLDeclaration := strings.HasPrefix(trimmedLine, "<?xml")
-		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行，且行以 4 个空格开头（缩进的属性行），且包含 version="
-		if inAssemblyIdentity && !isXMLDeclaration && strings.HasPrefix(line, "    ") && strings.Contains(line, `version="`) {
-			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
-			// 使用更精确的正则表达式，匹配 4 个空格 + version="值"
-			re := regexp.MustCompile(`(    version=")[^"]+(")`)
-			// 使用 ReplaceAllString，$1 和 $2 是正则表达式的反向引用
-			newLine := re.ReplaceAllString(line, fmt.Sprintf(`${1}%s${2}`, manifestVersion))
-			lines[i] = newLine
-		}
-		// 检查是否离开 assemblyIdentity 标签
-		if inAssemblyIdentity && strings.Contains(trimmedLine, "/>") {
-			break
-		}
-	}
-	newContent := strings.Join(lines, "\n")
+		manifestVersion := strings.Join(versionParts[:4], ".")
 
-	return ioutil.WriteFile(path, []byte(newContent), 0644)
+		// 只匹配 assemblyIdentity 标签内的 version 属性
+		contentStr := string(content)
+		lines := strings.Split(contentStr, "\n")
+		inAssemblyIdentity := false
+		for i, line := range lines {
+			trimmedLine := strings.TrimSpace(line)
+			if strings.Contains(trimmedLine, "<assemblyIdentity") {
+				inAssemblyIdentity = true
+			}
+			isXMLDeclaration := strings.HasPrefix(trimmedLine, "<?xml")
+			if inAssemblyIdentity && !isXMLDeclaration && strings.HasPrefix(line, "    ") && strings.Contains(line, `version="`) {
+				lines[i] = fmt.Sprintf(`    version="%s"`, manifestVersion)
+			}
+			if inAssemblyIdentity && strings.Contains(trimmedLine, "/>") {
+				break
+			}
+		}
+		newContent := strings.Join(lines, "\n")
+		return []byte(newContent), nil
+	})
 }
 
 // 更新 Windows info.json
 func updateWindowsInfoJSON(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal(content, &data); err != nil {
-		return err
-	}
-
-	// 更新 fixed.file_version
-	if fixed, ok := data["fixed"].(map[string]interface{}); ok {
-		fixed["file_version"] = version
-	}
-
-	// 更新 info.0000.ProductVersion
-	if info, ok := data["info"].(map[string]interface{}); ok {
-		if info0000, ok := info["0000"].(map[string]interface{}); ok {
-			info0000["ProductVersion"] = version
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		var data map[string]interface{}
+		if err := json.Unmarshal(content, &data); err != nil {
+			return nil, err
 		}
-	}
 
-	newContent, err := json.MarshalIndent(data, "", "\t")
-	if err != nil {
-		return err
-	}
+		// 更新 fixed.file_version
+		if fixed, ok := data["fixed"].(map[string]interface{}); ok {
+			fixed["file_version"] = version
+		}
 
-	return ioutil.WriteFile(path, newContent, 0644)
+		// 更新 info.0000.ProductVersion
+		if info, ok := data["info"].(map[string]interface{}); ok {
+			if info0000, ok := info["0000"].(map[string]interface{}); ok {
+				info0000["ProductVersion"] = version
+			}
+		}
+
+		newContent, err := json.MarshalIndent(data, "", "\t")
+		if err != nil {
+			return nil, err
+		}
+
+		return newContent, nil
+	})
 }
 
 // 更新 Windows manifest 文件
 func updateManifestFile(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	// 只更新 assemblyIdentity 中的 version，不更新 XML 声明和 Microsoft.Windows.Common-Controls
-	// 匹配 <assemblyIdentity ... version="1.2.5" ...> 格式，但排除 Microsoft.Windows.Common-Controls
-	re := regexp.MustCompile(`(<assemblyIdentity[^>]*name="com\.codeswitch\.app"[^>]*version=")[^"]+(")`)
-	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
-
-	return ioutil.WriteFile(path, []byte(newContent), 0644)
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		// 只更新 assemblyIdentity 中的 version，不更新 XML 声明和 Microsoft.Windows.Common-Controls
+		newContent := reManifestAppVersion.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
+		return []byte(newContent), nil
+	})
 }
 
 // 更新 NSIS 工具脚本
 func updateNSISFile(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	// 匹配 !define INFO_PRODUCTVERSION "1.2.5" 格式（完整行）
-	re := regexp.MustCompile(`(!define INFO_PRODUCTVERSION\s+")[^"]+(")`)
-	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
-
-	return ioutil.WriteFile(path, []byte(newContent), 0644)
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		// 匹配 !define INFO_PRODUCTVERSION "1.2.5" 格式（完整行）
+		newContent := reNSISProductVersion.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
+		return []byte(newContent), nil
+	})
 }
 
 // 更新 Linux nfpm.yaml
 func updateNFPMYAML(path, version string) error {
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	// 匹配 version: "1.2.5" 格式（完整行，避免匹配其他 version）
-	re := regexp.MustCompile(`(^version:\s+")[^"]+(")`)
-	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
-
-	return ioutil.WriteFile(path, []byte(newContent), 0644)
+	return updateFile(path, func(content []byte) ([]byte, error) {
+		// 匹配 version: "1.2.5" 格式（完整行，避免匹配其他 version）
+		newContent := reNFPMVersion.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, version))
+		return []byte(newContent), nil
+	})
 }
