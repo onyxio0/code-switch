@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -20,11 +20,11 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
@@ -72,11 +72,11 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@latest
@@ -160,11 +160,11 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install Linux Build Dependencies
         run: |
@@ -306,7 +306,6 @@ jobs:
         with:
           files: release-assets/*
           body: |
-<<<<<<< HEAD
             ## 安装方法
 
             ### Homebrew (推荐 - macOS)
@@ -325,65 +324,6 @@ jobs:
 
             - **arm64**: `${{ steps.sha256.outputs.arm64_sha }}`
             - **amd64**: `${{ steps.sha256.outputs.amd64_sha }}`
-=======
-            ## 下载说明
-
-            | 平台 | 文件 | 说明 |
-            |------|------|------|
-            | **Windows (首次)** | `CodeSwitch-amd64-installer.exe` | NSIS 安装器 |
-            | **Windows (便携)** | `CodeSwitch.exe` | 直接运行 |
-            | **Windows (更新)** | `updater.exe` | 静默更新辅助 |
-            | **macOS (ARM)** | `codeswitch-macos-arm64.zip` | Apple Silicon |
-            | **macOS (Intel)** | `codeswitch-macos-amd64.zip` | Intel 芯片 |
-            | **Linux (通用)** | `CodeSwitch.AppImage` | 跨发行版便携 |
-            | **Linux (Debian/Ubuntu)** | `codeswitch_*.deb` | apt 安装 |
-            | **Linux (RHEL/Fedora)** | `codeswitch-*.rpm` | dnf/yum 安装 |
-
-            ## Linux 安装
-
-            ### AppImage (推荐)
-            ```bash
-            chmod +x CodeSwitch.AppImage
-            ./CodeSwitch.AppImage
-            ```
-            如遇 FUSE 问题：`./CodeSwitch.AppImage --appimage-extract-and-run`
-
-            ### Debian/Ubuntu
-            ```bash
-            sudo dpkg -i codeswitch_*.deb
-            sudo apt-get install -f  # 安装依赖
-            ```
-
-            ### RHEL/Fedora
-            ```bash
-            sudo rpm -i codeswitch-*.rpm
-            # 或
-            sudo dnf install codeswitch-*.rpm
-            ```
-
-            ## 支持的 Linux 发行版
-
-            | 发行版 | 版本 | 推荐格式 |
-            |--------|------|----------|
-            | Ubuntu | 24.04 LTS | DEB |
-            | Ubuntu | 22.04 LTS | AppImage |
-            | Debian | 12 (Bookworm) | DEB |
-            | Fedora | 39/40 | RPM |
-            | Arch Linux | Rolling | AppImage |
-
-            > Ubuntu 22.04 因 WebKit 版本限制，建议使用 AppImage。
-
-            ## 文件校验
-
-            所有平台均提供 SHA256 校验文件（`.sha256`），下载后可验证完整性：
-            ```bash
-            # Linux/macOS
-            sha256sum -c CodeSwitch.AppImage.sha256
-
-            # Windows PowerShell
-            Get-FileHash CodeSwitch.exe | Format-List
-            ```
->>>>>>> rogers/main
           draft: false
           prerelease: false
         env:
@@ -403,18 +343,18 @@ jobs:
             echo "To enable automatic Homebrew updates, add HOMEBREW_TAP_TOKEN to repository secrets"
             exit 0
           fi
-          
+
           # 提取版本号（去掉 v 前缀）
           VERSION=${TAG_NAME#v}
-          
+
           # Clone homebrew-tap 仓库（使用 PAT）
           git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/onyxio0/homebrew-tap.git
           cd homebrew-tap
-          
+
           # 配置 git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # 更新 Cask 文件
           cat > Casks/code-switch.rb << EOF
           cask "code-switch" do
@@ -448,13 +388,13 @@ jobs:
             ]
           end
           EOF
-          
+
           # 提交并推送
           git add Casks/code-switch.rb
           git commit -m "Update code-switch to ${VERSION}
-          
+
           - ARM64 SHA256: ${ARM64_SHA}
           - AMD64 SHA256: ${AMD64_SHA}"
           git push origin main
-          
+
           echo "✅ Homebrew Cask updated successfully!"

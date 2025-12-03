@@ -343,7 +343,6 @@
         "go_authorized": "去授权",
         "back": "返回首页"
       },
-<<<<<<< HEAD
       "import": {
         "label": "导入 cc-switch 配置",
         "path": "配置文件：{path}",
@@ -360,7 +359,7 @@
         "clear": "清除选择",
         "reupload": "重新上传",
         "missingDefault": "未检测到 cc-switch 配置文件，可手动上传 JSON 进行导入"
-=======
+      },
       "update": {
         "checkFailed": "连续 {count} 次检查失败",
         "checking": "检查中...",
@@ -368,7 +367,6 @@
         "downloading": "下载中 {progress}%",
         "downloadAndInstall": "下载并安装",
         "installAndRestart": "安装并重启"
->>>>>>> rogers/main
       }
     },
     "mcp": {

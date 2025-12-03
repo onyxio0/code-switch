@@ -10,19 +10,11 @@
         <key>CFBundleIdentifier</key>
             <string>com.codeswitch.app</string>
         <key>CFBundleVersion</key>
-<<<<<<< HEAD
-            <string>0.1.8</string>
-        <key>CFBundleGetInfoString</key>
-            <string>Code Switch desktop relay controller</string>
-        <key>CFBundleShortVersionString</key>
-            <string>0.1.8</string>
-=======
             <string>1.0.0</string>
         <key>CFBundleGetInfoString</key>
             <string>Code Switch desktop relay controller</string>
         <key>CFBundleShortVersionString</key>
             <string>1.0.0</string>
->>>>>>> rogers/main
         <key>CFBundleIconFile</key>
             <string>icons</string>
         <key>LSMinimumSystemVersion</key>

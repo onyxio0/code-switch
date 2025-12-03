@@ -227,9 +227,6 @@
             <div class="card-text">
               <div class="card-title-row">
                 <p class="card-title">{{ card.name }}</p>
-<<<<<<< HEAD
-                <span
-=======
                 <span v-if="card.level" class="level-badge scheduling-level" :class="`level-${card.level}`">
                   L{{ card.level }}
                 </span>
@@ -246,7 +243,6 @@
                   BL{{ getProviderBlacklistStatus(card.name)!.blacklistLevel }}
                 </span>
                 <button
->>>>>>> rogers/main
                   v-if="card.officialSite"
                   class="card-site"
                   role="button"
@@ -558,12 +554,9 @@ import { fetchAppSettings, type AppSettings } from '../../services/appSettings'
 import { getUpdateState, restartApp, type UpdateState } from '../../services/update'
 import { getCurrentTheme, setTheme, type ThemeMode } from '../../utils/ThemeManager'
 import { useRouter } from 'vue-router'
-<<<<<<< HEAD
-=======
 import { fetchConfigImportStatus, importFromCcSwitch, type ConfigImportStatus } from '../../services/configImport'
 import { showToast } from '../../utils/toast'
 import { getBlacklistStatus, manualUnblock, type BlacklistStatus } from '../../services/blacklist'
->>>>>>> rogers/main
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -615,8 +608,6 @@ const showHomeTitle = ref(true)
 const mcpIcon = lobeIcons['mcp'] ?? ''
 const appVersion = ref('')
 const hasUpdateAvailable = ref(false)
-<<<<<<< HEAD
-=======
 const updateReady = ref(false)
 const downloadProgress = ref(0)
 const importStatus = ref<ConfigImportStatus | null>(null)
@@ -649,7 +640,6 @@ const importButtonTooltip = computed(() => {
     servers: status.pending_mcp_count,
   })
 })
->>>>>>> rogers/main
 
 const intensityClass = (value: number) => `gh-level-${value}`
 
@@ -1297,11 +1287,8 @@ onMounted(async () => {
   await Promise.all(providerTabIds.map((tab) => loadProviderStats(tab)))
   await loadAppSettings()
   await checkForUpdates()
-<<<<<<< HEAD
-=======
   await pollUpdateState() // 首次加载更新状态
   await refreshImportStatus()
->>>>>>> rogers/main
   startProviderStatsTimer()
   startUpdateTimer()
 
@@ -1676,8 +1663,6 @@ const onTabChange = (idx: number) => {
   font-size: 0.85rem;
 }
 
-<<<<<<< HEAD
-=======
 @keyframes import-spin {
   from {
     transform: rotate(0deg);
@@ -2158,5 +2143,4 @@ const onTabChange = (idx: number) => {
   background: rgba(220, 38, 38, 0.3);
   color: #fff;
 }
->>>>>>> rogers/main
 </style>

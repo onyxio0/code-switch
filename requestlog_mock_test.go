@@ -21,17 +21,11 @@ func init() {
 
 	if err := xdb.Inits([]xdb.Config{
 		{
-<<<<<<< HEAD
 			Name:        "default",
 			Driver:      "sqlite",
 			DSN:         filepath.Join(home, ".code-switch", "app.db"+sqliteOptions),
 			MaxOpenConn: 1,
 			MaxIdleConn: 1,
-=======
-			Name:   "default",
-			Driver: "sqlite",
-			DSN:    filepath.Join(home, ".code-switch", "app.db?cache=shared&mode=rwc&_busy_timeout=10000&_journal_mode=WAL"),
->>>>>>> rogers/main
 		},
 	}); err != nil {
 		fmt.Printf("初始化 request_log 表失败: %v\n", err)

@@ -37,27 +37,6 @@
 
 解压后将 `.app` 拖入 Applications 文件夹。
 
-<<<<<<< HEAD
-## 安装
-
-### Homebrew (推荐 - macOS)
-
-```bash
-# 添加 tap
-brew tap onyxio0/tap
-
-# 安装 Code Switch
-brew install --cask code-switch
-
-# 或者一行命令直接安装
-brew install --cask onyxio0/tap/code-switch
-```
-
-### 手动下载
-
-- [macOS 下载](https://github.com/onyxio0/code-switch/releases)
-- [Windows 下载](https://github.com/onyxio0/code-switch/releases)
-=======
 ### Linux
 
 | 文件 | 说明 |
@@ -108,7 +87,6 @@ sudo dnf install codeswitch-*.rpm
 这让 CLI 看到的是固定的本地地址，而请求被透明路由到你配置的供应商列表。
 
 ## 界面预览
->>>>>>> rogers/main
 
 ![亮色主界面](resources/images/code-switch.png)
 ![暗色主界面](resources/images/code-swtich-dark.png)

@@ -7,7 +7,9 @@ import ListItem from '../Setting/ListRow.vue'
 import LanguageSwitcher from '../Setting/LanguageSwitcher.vue'
 import ThemeSetting from '../Setting/ThemeSetting.vue'
 import { fetchAppSettings, saveAppSettings, type AppSettings } from '../../services/appSettings'
-<<<<<<< HEAD
+import { checkUpdate, downloadUpdate, restartApp, getUpdateState, setAutoCheckEnabled, type UpdateState } from '../../services/update'
+import { fetchCurrentVersion } from '../../services/version'
+import { getBlacklistSettings, updateBlacklistSettings, getLevelBlacklistEnabled, setLevelBlacklistEnabled, getBlacklistEnabled, setBlacklistEnabled, type BlacklistSettings } from '../../services/settings'
 import {
   fetchConfigImportStatus,
   fetchConfigImportStatusForFile,
@@ -21,15 +23,6 @@ import BaseButton from '../common/BaseButton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
-const heatmapEnabled = ref(true)
-const homeTitleVisible = ref(true)
-const autoStartEnabled = ref(false)
-=======
-import { checkUpdate, downloadUpdate, restartApp, getUpdateState, setAutoCheckEnabled, type UpdateState } from '../../services/update'
-import { fetchCurrentVersion } from '../../services/version'
-import { getBlacklistSettings, updateBlacklistSettings, getLevelBlacklistEnabled, setLevelBlacklistEnabled, getBlacklistEnabled, setBlacklistEnabled, type BlacklistSettings } from '../../services/settings'
-
-const router = useRouter()
 // 从 localStorage 读取缓存值作为初始值，避免加载时的视觉闪烁
 const getCachedValue = (key: string, defaultValue: boolean): boolean => {
   const cached = localStorage.getItem(`app-settings-${key}`)
@@ -39,7 +32,6 @@ const heatmapEnabled = ref(getCachedValue('heatmap', true))
 const homeTitleVisible = ref(getCachedValue('homeTitle', true))
 const autoStartEnabled = ref(getCachedValue('autoStart', false))
 const autoUpdateEnabled = ref(getCachedValue('autoUpdate', true))
->>>>>>> rogers/main
 const settingsLoading = ref(true)
 const saveBusy = ref(false)
 const importStatus = ref<ConfigImportStatus | null>(null)
@@ -118,11 +110,6 @@ const persistAppSettings = async () => {
   }
 }
 
-<<<<<<< HEAD
-onMounted(() => {
-  void loadAppSettings()
-  void loadImportStatus()
-=======
 const loadUpdateState = async () => {
   try {
     updateState.value = await getUpdateState()
@@ -309,7 +296,7 @@ onMounted(async () => {
 
   // 加载拉黑配置
   await loadBlacklistSettings()
->>>>>>> rogers/main
+  void loadImportStatus()
 })
 
 const loadImportStatus = async () => {
@@ -718,7 +705,6 @@ const handleSecondaryImportAction = async () => {
 </template>
 
 <style scoped>
-<<<<<<< HEAD
 .import-actions {
   display: flex;
   gap: 0.35rem;
@@ -735,7 +721,8 @@ const handleSecondaryImportAction = async () => {
 .import-actions .btn-outline,
 .import-actions .btn-ghost {
   padding-inline: 0.75rem;
-=======
+}
+
 .toggle-with-hint {
   display: flex;
   flex-direction: column;
@@ -754,6 +741,5 @@ const handleSecondaryImportAction = async () => {
 
 :global(.dark) .hint-text {
   color: rgba(255, 255, 255, 0.5);
->>>>>>> rogers/main
 }
 </style>

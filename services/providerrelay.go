@@ -8,17 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-<<<<<<< HEAD
-	"os"
-	"path/filepath"
-=======
 	"sort"
->>>>>>> rogers/main
 	"strings"
 	"time"
 
 	"github.com/daodao97/xgo/xdb"
-	"github.com/daodao97/xgo/xlog"
 	"github.com/daodao97/xgo/xrequest"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
@@ -41,27 +35,8 @@ func NewProviderRelayService(providerService *ProviderService, geminiService *Ge
 		addr = "127.0.0.1:18100" // 【安全修复】仅监听本地回环地址，防止 API Key 暴露到局域网
 	}
 
-<<<<<<< HEAD
-	home, _ := os.UserHomeDir()
-	const sqliteOptions = "?cache=shared&mode=rwc&_busy_timeout=5000&_journal_mode=WAL"
-
-	if err := xdb.Inits([]xdb.Config{
-		{
-			Name:        "default",
-			Driver:      "sqlite",
-			DSN:         filepath.Join(home, ".code-switch", "app.db"+sqliteOptions),
-			MaxOpenConn: 1,
-			MaxIdleConn: 1,
-		},
-	}); err != nil {
-		fmt.Printf("初始化数据库失败: %v\n", err)
-	} else if err := ensureRequestLogTable(); err != nil {
-		fmt.Printf("初始化 request_log 表失败: %v\n", err)
-	}
-=======
 	// 【修复】数据库初始化已移至 main.go 的 InitDatabase()
 	// 此处不再调用 xdb.Inits()、ensureRequestLogTable()、ensureBlacklistTables()
->>>>>>> rogers/main
 
 	return &ProviderRelayService{
 		providerService:  providerService,
@@ -126,8 +101,8 @@ func (prs *ProviderRelayService) validateConfig() []string {
 			}
 
 			// 检查是否配置了模型白名单或映射
-			if (p.SupportedModels == nil || len(p.SupportedModels) == 0) &&
-				(p.ModelMapping == nil || len(p.ModelMapping) == 0) {
+			if (len(p.SupportedModels) == 0) &&
+				(len(p.ModelMapping) == 0) {
 				warnings = append(warnings, fmt.Sprintf(
 					"[%s/%s] 未配置 supportedModels 或 modelMapping，将假设支持所有模型（可能导致降级失败）",
 					kind, p.Name))
@@ -240,23 +215,26 @@ func (prs *ProviderRelayService) proxyHandler(kind string, endpoint string) gin.
 		}
 		fmt.Println()
 
+		// 按 Level 分组
+		levelGroups := make(map[int][]Provider)
+		for _, p := range active {
+			level := p.Level
+			if level <= 0 {
+				level = 1 // 默认 Level 1
+			}
+			levelGroups[level] = append(levelGroups[level], p)
+		}
+
+		// 获取排序后的 Level 列表
+		var levels []int
+		for level := range levelGroups {
+			levels = append(levels, level)
+		}
+		sort.Ints(levels)
+
 		query := flattenQuery(c.Request.URL.Query())
 		clientHeaders := cloneHeaders(c.Request.Header)
 
-<<<<<<< HEAD
-		var lastErr error
-		attemptCount := 0
-		for i, provider := range active {
-			attemptCount++
-
-			effectiveModel := provider.GetEffectiveModel(requestedModel)
-
-			currentBodyBytes := bodyBytes
-			if effectiveModel != requestedModel && requestedModel != "" {
-				fmt.Printf("[INFO]   Provider %s 映射模型: %s -> %s\n", provider.Name, requestedModel, effectiveModel)
-
-				modifiedBody, err := ReplaceModelInRequestBody(bodyBytes, effectiveModel)
-=======
 		// 获取拉黑功能开关状态
 		blacklistEnabled := prs.blacklistService.IsLevelBlacklistEnabled()
 
@@ -391,44 +369,9 @@ func (prs *ProviderRelayService) proxyHandler(kind string, endpoint string) gin.
 				lastDuration = duration
 
 				errorMsg := "未知错误"
->>>>>>> rogers/main
 				if err != nil {
-					fmt.Printf("[ERROR]   替换模型名失败: %v\n", err)
-					lastErr = err
-					continue
+					errorMsg = err.Error()
 				}
-<<<<<<< HEAD
-				currentBodyBytes = modifiedBody
-			}
-
-			fmt.Printf("[INFO]   [%d/%d] Provider: %s | Model: %s\n",
-				i+1, len(active), provider.Name, effectiveModel)
-
-			startTime := time.Now()
-			ok, err := prs.forwardRequest(c, kind, provider, endpoint, query, clientHeaders, currentBodyBytes, isStream, effectiveModel)
-			duration := time.Since(startTime)
-
-			if ok {
-				fmt.Printf("[INFO]   ✓ 成功: %s | 耗时: %.2fs\n", provider.Name, duration.Seconds())
-				return
-			}
-
-			errorMsg := "未知错误"
-			if err != nil {
-				errorMsg = err.Error()
-			}
-			fmt.Printf("[WARN]   ✗ 失败: %s | 错误: %s | 耗时: %.2fs\n",
-				provider.Name, errorMsg, duration.Seconds())
-			lastErr = err
-		}
-
-		message := fmt.Sprintf("所有 %d 个 provider 均失败（共尝试 %d 次）", len(active), attemptCount)
-		if lastErr != nil {
-			message = fmt.Sprintf("%s: %s", message, lastErr.Error())
-		}
-		xlog.Error("all is error")
-		c.JSON(http.StatusBadRequest, gin.H{"error": message})
-=======
 				fmt.Printf("[WARN]   ✗ Level %d 失败: %s | 错误: %s | 耗时: %.2fs\n",
 					level, provider.Name, errorMsg, duration.Seconds())
 
@@ -452,12 +395,11 @@ func (prs *ProviderRelayService) proxyHandler(kind string, endpoint string) gin.
 			totalAttempts, lastProvider, errorMsg)
 
 		c.JSON(http.StatusBadGateway, gin.H{
-			"error":         fmt.Sprintf("所有 %d 个 provider 均失败，最后错误: %s", totalAttempts, errorMsg),
-			"last_provider": lastProvider,
-			"last_duration": fmt.Sprintf("%.2fs", lastDuration.Seconds()),
+			"error":          fmt.Sprintf("所有 %d 个 provider 均失败，最后错误: %s", totalAttempts, errorMsg),
+			"last_provider":  lastProvider,
+			"last_duration":  fmt.Sprintf("%.2fs", lastDuration.Seconds()),
 			"total_attempts": totalAttempts,
 		})
->>>>>>> rogers/main
 	}
 }
 
@@ -526,13 +468,9 @@ func (prs *ProviderRelayService) forwardRequest(
 
 	req := xrequest.New().
 		SetHeaders(headers).
-<<<<<<< HEAD
-		SetQueryParams(query)
-=======
 		SetQueryParams(query).
 		SetRetry(1, 500*time.Millisecond).
 		SetTimeout(3 * time.Hour) // 3小时超时，适配大型项目分析
->>>>>>> rogers/main
 
 	reqBody := bytes.NewReader(bodyBytes)
 	req = req.SetBody(reqBody)
@@ -805,7 +743,7 @@ func mergeGeminiUsageMetadata(usage gjson.Result, reqLog *ReqeustLog) {
 // 【修复】维护跨 chunk 缓冲，确保完整 SSE 事件解析
 // Gemini SSE 格式: "data: {json}\n\n" 或 "data: [DONE]\n\n"
 func streamGeminiResponseWithHook(body io.Reader, writer io.Writer, requestLog *ReqeustLog) error {
-	buf := make([]byte, 8192) // 增大缓冲区减少系统调用
+	buf := make([]byte, 8192)   // 增大缓冲区减少系统调用
 	var lineBuf strings.Builder // 跨 chunk 行缓冲
 
 	for {

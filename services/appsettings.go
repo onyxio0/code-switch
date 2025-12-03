@@ -11,15 +11,10 @@ import (
 )
 
 const (
-<<<<<<< HEAD
-	appSettingsDir  = ".codex-switch"
-	appSettingsFile = "app.json"
-=======
 	appSettingsDir      = ".code-switch" // 【修复】修正拼写错误（原为 .codex-swtich）
 	appSettingsFile     = "app.json"
 	oldSettingsDir      = ".codex-swtich"           // 旧的错误拼写
 	migrationMarkerFile = ".migrated-from-codex-swtich" // 迁移标记文件
->>>>>>> rogers/main
 )
 
 type AppSettings struct {

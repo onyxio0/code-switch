@@ -342,7 +342,6 @@
         "go_authorized": "Auth now",
         "back": "Back to home"
       },
-<<<<<<< HEAD
       "import": {
         "label": "Import cc-switch data",
         "path": "Config file: {path}",
@@ -359,7 +358,7 @@
         "clear": "Clear selection",
         "reupload": "Upload another JSON",
         "missingDefault": "No cc-switch config detected. Upload a JSON manually to import."
-=======
+      },
       "update": {
         "checkFailed": "Check failed {count} times in a row",
         "checking": "Checking...",
@@ -367,7 +366,6 @@
         "downloading": "Downloading {progress}%",
         "downloadAndInstall": "Download and install",
         "installAndRestart": "Install and restart"
->>>>>>> rogers/main
       }
     },
     "mcp": {
