@@ -51,9 +51,15 @@ generated="${appimages[0]}"
 lower_app_name=$(echo "${APP_NAME}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
 expected="${lower_app_name}-${ARCH}.AppImage"
 
-if [[ -f "${expected}" ]]; then
-    echo "AppImage already at expected name: ${expected}"
+# Move into build directory (wails expects it there when moving artifacts)
+target_dir="${BUILD_DIR:-build}"
+mkdir -p "${target_dir}"
+
+if [[ "${generated}" != "${target_dir}/${expected}" ]]; then
+    mv "${generated}" "${target_dir}/${expected}"
 else
-    cp "${generated}" "${expected}"
-    echo "Copied ${generated} -> ${expected}"
+    # If already named/located as expected, ensure path exists
+    mkdir -p "$(dirname "${generated}")"
 fi
+
+echo "Placed AppImage at ${target_dir}/${expected}"
