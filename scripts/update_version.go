@@ -132,8 +132,9 @@ func updateUpdaterManifest(path, version string) error {
 	// 匹配 <assemblyIdentity ... version="1.0.0.0" ...> 格式（支持多行属性）
 	// 由于属性可能跨行，使用 (?s) 使 . 匹配换行符
 	contentStr := string(content)
-	// 匹配 version="..." 在 name="CodeSwitch.Updater" 之后（可能跨行）
-	re := regexp.MustCompile(`(?s)(name="CodeSwitch\.Updater"[^\n]*\n\s*version=")[^"]+(")`)
+	// 匹配 version="..." 在 <assemblyIdentity 标签内，name="CodeSwitch.Updater" 之前或之后
+	// 匹配 version="..." 在单独一行（可能在 name 之前或之后）
+	re := regexp.MustCompile(`(<assemblyIdentity[^\n]*\n\s*version=")[^"]+(")`)
 	newContent := re.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, manifestVersion))
 
 	return ioutil.WriteFile(path, []byte(newContent), 0644)
