@@ -18,51 +18,70 @@
 
 ## 下载安装
 
-[最新版本下载](https://github.com/Rogers-F/code-switch-R/releases)
+[最新版本下载](https://github.com/onyxio0/code-switch/releases)
 
 ### Windows
 
-| 文件 | 说明 |
-|------|------|
+| 文件                             | 说明                        |
+| -------------------------------- | --------------------------- |
 | `CodeSwitch-amd64-installer.exe` | NSIS 安装器（推荐首次安装） |
-| `CodeSwitch.exe` | 便携版，直接运行 |
-| `updater.exe` | 静默更新辅助程序 |
+| `CodeSwitch.exe`                 | 便携版，直接运行            |
+| `updater.exe`                    | 静默更新辅助程序            |
 
 ### macOS
 
-| 文件 | 说明 |
-|------|------|
+#### Homebrew (推荐)
+
+```bash
+# 添加 tap
+brew tap onyxio0/tap
+
+# 安装 Code Switch
+brew install --cask code-switch
+
+# 或者一行命令直接安装
+brew install --cask onyxio0/tap/code-switch
+```
+
+#### 手动下载
+
+| 文件                         | 说明                     |
+| ---------------------------- | ------------------------ |
 | `codeswitch-macos-arm64.zip` | Apple Silicon (M1/M2/M3) |
-| `codeswitch-macos-amd64.zip` | Intel 芯片 |
+| `codeswitch-macos-amd64.zip` | Intel 芯片               |
 
 解压后将 `.app` 拖入 Applications 文件夹。
 
 ### Linux
 
-| 文件 | 说明 |
-|------|------|
-| `CodeSwitch.AppImage` | 跨发行版便携格式（推荐） |
-| `codeswitch_*.deb` | Debian/Ubuntu 安装包 |
-| `codeswitch-*.rpm` | RHEL/Fedora/CentOS 安装包 |
+| 文件                  | 说明                      |
+| --------------------- | ------------------------- |
+| `CodeSwitch.AppImage` | 跨发行版便携格式（推荐）  |
+| `codeswitch_*.deb`    | Debian/Ubuntu 安装包      |
+| `codeswitch-*.rpm`    | RHEL/Fedora/CentOS 安装包 |
 
 **AppImage 运行方式：**
+
 ```bash
 chmod +x CodeSwitch.AppImage
 ./CodeSwitch.AppImage
 ```
 
 如遇 FUSE 问题：
+
 ```bash
 ./CodeSwitch.AppImage --appimage-extract-and-run
 ```
 
 **DEB 安装：**
+
 ```bash
 sudo dpkg -i codeswitch_*.deb
 sudo apt-get install -f  # 安装依赖
 ```
 
 **RPM 安装：**
+
 ```bash
 sudo rpm -i codeswitch-*.rpm
 # 或使用 dnf
@@ -76,10 +95,12 @@ sudo dnf install codeswitch-*.rpm
 应用启动时在本地 `:18100` 端口创建 HTTP 代理服务器，并自动配置 Claude Code 和 Codex 指向该代理。
 
 代理暴露两个关键端点：
+
 - `/v1/messages` → 转发到 Claude 供应商
 - `/responses` → 转发到 Codex 供应商
 
 请求由 `proxyHandler` 基于优先级分组动态选择 Provider：
+
 1. 优先尝试 Level 1（最高优先级）的所有供应商
 2. 失败后依次尝试 Level 2、Level 3 等
 3. 同一 Level 内按用户排序依次尝试
@@ -102,6 +123,7 @@ sudo dnf install codeswitch-*.rpm
 - Wails 3 CLI: `go install github.com/wailsapp/wails/v3/cmd/wails3@latest`
 
 **Linux 额外依赖：**
+
 ```bash
 # Ubuntu/Debian
 sudo apt-get install build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
@@ -160,20 +182,21 @@ git push origin v1.2.0
 ```
 
 自动构建产物：
+
 - macOS: `codeswitch-macos-arm64.zip`, `codeswitch-macos-amd64.zip`
 - Windows: `CodeSwitch-amd64-installer.exe`, `CodeSwitch.exe`, `updater.exe`
 - Linux: `CodeSwitch.AppImage`, `codeswitch_*.deb`, `codeswitch-*.rpm`
 
 ## 支持的发行版
 
-| 发行版 | 版本 | 格式 |
-|--------|------|------|
-| Ubuntu | 24.04 LTS | DEB / AppImage |
-| Ubuntu | 22.04 LTS | AppImage |
-| Debian | 12 (Bookworm) | DEB / AppImage |
-| Fedora | 39/40 | RPM / AppImage |
-| Linux Mint | 22+ | DEB / AppImage |
-| Arch Linux | Rolling | AppImage |
+| 发行版     | 版本          | 格式           |
+| ---------- | ------------- | -------------- |
+| Ubuntu     | 24.04 LTS     | DEB / AppImage |
+| Ubuntu     | 22.04 LTS     | AppImage       |
+| Debian     | 12 (Bookworm) | DEB / AppImage |
+| Fedora     | 39/40         | RPM / AppImage |
+| Linux Mint | 22+           | DEB / AppImage |
+| Arch Linux | Rolling       | AppImage       |
 
 > Ubuntu 22.04 因 WebKit 版本限制（4.0），建议使用 AppImage。
 

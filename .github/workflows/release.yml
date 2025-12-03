@@ -310,6 +310,13 @@ jobs:
 
             ### Homebrew (推荐 - macOS)
             ```bash
+            # 添加 tap
+            brew tap onyxio0/tap
+
+            # 安装 Code Switch
+            brew install --cask code-switch
+
+            # 或者一行命令直接安装
             brew install --cask onyxio0/tap/code-switch
             ```
 
