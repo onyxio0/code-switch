@@ -4,9 +4,12 @@
       <p class="global-eyebrow">{{ t('components.main.hero.eyebrow') }}</p>
       <button
         class="ghost-icon github-icon"
-        :class="{ 'github-upgrade': hasUpdateAvailable }"
-        :data-tooltip="hasUpdateAvailable ? t('components.main.controls.githubUpdate') : t('components.main.controls.github')"
-        @click="openGitHub"
+        :class="{
+          'github-upgrade': hasUpdateAvailable && !updateReady,
+          'update-ready': updateReady
+        }"
+        :data-tooltip="getGithubTooltip()"
+        @click="handleGithubClick"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -18,6 +21,12 @@
             stroke-linejoin="round"
           />
         </svg>
+        <!-- 更新徽章 -->
+        <span v-if="updateReady" class="update-badge pulse">Ready</span>
+        <span v-else-if="downloadProgress > 0 && downloadProgress < 100" class="update-badge downloading">
+          {{ Math.round(downloadProgress) }}%
+        </span>
+        <span v-else-if="hasUpdateAvailable" class="update-badge">New</span>
       </button>
       <button
         class="ghost-icon"
@@ -156,65 +165,30 @@
           </div>
           <button
             class="ghost-icon"
-            :data-tooltip="t('components.main.controls.mcp')"
-            @click="goToMcp"
-          >
-            <span class="icon-svg" v-html="mcpIcon" aria-hidden="true"></span>
-          </button>
-          <button
-            class="ghost-icon"
-            :data-tooltip="t('components.main.controls.skill')"
-            @click="goToSkill"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M6 4h8a4 4 0 014 4v12a3 3 0 00-3-3H6z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M6 4a2 2 0 00-2 2v13c0 .55.45 1 1 1h11"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <path
-                d="M9 8h5"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-          <button
-            class="ghost-icon"
-            :data-tooltip="t('components.main.logs.view')"
-            @click="goToLogs"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path
-                d="M5 7h14M5 12h14M5 17h9"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                fill="none"
-              />
-            </svg>
-          </button>
-          <button
-            class="ghost-icon"
             :data-tooltip="t('components.main.tabs.addCard')"
             @click="openCreateModal"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                fill="none"
+              />
+            </svg>
+          </button>
+          <button
+            class="ghost-icon"
+            :class="{ 'rotating': refreshing }"
+            :data-tooltip="t('components.main.tabs.refresh')"
+            @click="refreshAllData"
+            :disabled="refreshing"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"
                 stroke="currentColor"
                 stroke-width="1.5"
                 stroke-linecap="round"
@@ -253,7 +227,26 @@
             <div class="card-text">
               <div class="card-title-row">
                 <p class="card-title">{{ card.name }}</p>
+<<<<<<< HEAD
                 <span
+=======
+                <span v-if="card.level" class="level-badge scheduling-level" :class="`level-${card.level}`">
+                  L{{ card.level }}
+                </span>
+                <!-- 黑名单等级徽章（始终显示，包括 L0） -->
+                <span
+                  v-if="getProviderBlacklistStatus(card.name)"
+                  :class="[
+                    'blacklist-level-badge',
+                    `bl-level-${getProviderBlacklistStatus(card.name)!.blacklistLevel}`,
+                    { dark: resolvedTheme === 'dark' }
+                  ]"
+                  :title="t('components.main.blacklist.levelTitle', { level: getProviderBlacklistStatus(card.name)!.blacklistLevel })"
+                >
+                  BL{{ getProviderBlacklistStatus(card.name)!.blacklistLevel }}
+                </span>
+                <button
+>>>>>>> rogers/main
                   v-if="card.officialSite"
                   class="card-site"
                   role="button"
@@ -290,6 +283,65 @@
                   <span>{{ stats.cost }}</span>
                 </template>
               </p>
+              <!-- 黑名单横幅 -->
+              <div
+                v-if="getProviderBlacklistStatus(card.name)?.isBlacklisted"
+                :class="['blacklist-banner', { dark: resolvedTheme === 'dark' }]"
+              >
+                <div class="blacklist-info">
+                  <span class="blacklist-icon">⛔</span>
+                  <!-- 等级徽章（L1-L5，黑色/红色） -->
+                  <span
+                    v-if="getProviderBlacklistStatus(card.name)!.blacklistLevel > 0"
+                    :class="['level-badge', `level-${getProviderBlacklistStatus(card.name)!.blacklistLevel}`, { dark: resolvedTheme === 'dark' }]"
+                  >
+                    L{{ getProviderBlacklistStatus(card.name)!.blacklistLevel }}
+                  </span>
+                  <span class="blacklist-text">
+                    {{ t('components.main.blacklist.blocked') }} |
+                    {{ t('components.main.blacklist.remaining') }}:
+                    {{ formatBlacklistCountdown(getProviderBlacklistStatus(card.name)!.remainingSeconds) }}
+                  </span>
+                </div>
+                <div class="blacklist-actions">
+                  <button
+                    class="unblock-btn primary"
+                    type="button"
+                    @click.stop="handleUnblockAndReset(card.name)"
+                    :title="t('components.main.blacklist.unblockAndResetHint')"
+                  >
+                    {{ t('components.main.blacklist.unblockAndReset') }}
+                  </button>
+                  <button
+                    class="unblock-btn secondary"
+                    type="button"
+                    @click.stop="handleResetLevel(card.name)"
+                    :title="t('components.main.blacklist.resetLevelHint')"
+                  >
+                    {{ t('components.main.blacklist.resetLevel') }}
+                  </button>
+                </div>
+              </div>
+              <!-- 等级徽章（未拉黑但有等级） -->
+              <div
+                v-else-if="getProviderBlacklistStatus(card.name) && getProviderBlacklistStatus(card.name)!.blacklistLevel > 0"
+                class="level-badge-standalone"
+              >
+                <span
+                  :class="['level-badge', `level-${getProviderBlacklistStatus(card.name)!.blacklistLevel}`, { dark: resolvedTheme === 'dark' }]"
+                >
+                  L{{ getProviderBlacklistStatus(card.name)!.blacklistLevel }}
+                </span>
+                <span class="level-hint">{{ t('components.main.blacklist.levelHint') }}</span>
+                <button
+                  class="reset-level-mini"
+                  type="button"
+                  @click.stop="handleResetLevel(card.name)"
+                  :title="t('components.main.blacklist.resetLevelHint')"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           </div>
           <div class="card-actions">
@@ -308,6 +360,18 @@
                   stroke-linejoin="round"
                 />
                 <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button class="ghost-icon" :data-tooltip="t('components.main.controls.duplicate')" @click="handleDuplicate(card)">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
             <button class="ghost-icon" @click="requestRemove(card)">
@@ -465,10 +529,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, onMounted, onUnmounted } from 'vue'
+import { computed, reactive, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Listbox, ListboxButton, ListboxOptions, ListboxOption } from '@headlessui/vue'
-import { Browser } from '@wailsio/runtime'
+import { Browser, Call } from '@wailsio/runtime'
 import {
 	buildUsageHeatmapMatrix,
 	generateFallbackUsageHeatmap,
@@ -484,13 +548,22 @@ import BaseModal from '../common/BaseModal.vue'
 import BaseInput from '../common/BaseInput.vue'
 import ModelWhitelistEditor from '../common/ModelWhitelistEditor.vue'
 import ModelMappingEditor from '../common/ModelMappingEditor.vue'
-import { LoadProviders, SaveProviders } from '../../../bindings/codeswitch/services/providerservice'
+import { LoadProviders, SaveProviders, DuplicateProvider } from '../../../bindings/codeswitch/services/providerservice'
+import { GetProviders as GetGeminiProviders, UpdateProvider as UpdateGeminiProvider, AddProvider as AddGeminiProvider, DeleteProvider as DeleteGeminiProvider, ReorderProviders as ReorderGeminiProviders } from '../../../bindings/codeswitch/services/geminiservice'
 import { fetchProxyStatus, enableProxy, disableProxy } from '../../services/claudeSettings'
+import { fetchGeminiProxyStatus, enableGeminiProxy, disableGeminiProxy } from '../../services/geminiSettings'
 import { fetchHeatmapStats, fetchProviderDailyStats, type ProviderDailyStat } from '../../services/logs'
 import { fetchCurrentVersion } from '../../services/version'
 import { fetchAppSettings, type AppSettings } from '../../services/appSettings'
+import { getUpdateState, restartApp, type UpdateState } from '../../services/update'
 import { getCurrentTheme, setTheme, type ThemeMode } from '../../utils/ThemeManager'
 import { useRouter } from 'vue-router'
+<<<<<<< HEAD
+=======
+import { fetchConfigImportStatus, importFromCcSwitch, type ConfigImportStatus } from '../../services/configImport'
+import { showToast } from '../../utils/toast'
+import { getBlacklistStatus, manualUnblock, type BlacklistStatus } from '../../services/blacklist'
+>>>>>>> rogers/main
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -502,8 +575,8 @@ const resolvedTheme = computed(() => {
   return themeMode.value
 })
 const themeIcon = computed(() => (resolvedTheme.value === 'dark' ? 'moon' : 'sun'))
-const releasePageUrl = 'https://github.com/daodao97/code-switch/releases'
-const releaseApiUrl = 'https://api.github.com/repos/daodao97/code-switch/releases/latest'
+const releasePageUrl = 'https://github.com/Rogers-F/code-switch-R/releases'
+const releaseApiUrl = 'https://api.github.com/repos/Rogers-F/code-switch-R/releases/latest'
 
 const HEATMAP_DAYS = DEFAULT_HEATMAP_DAYS
 const usageHeatmap = ref<UsageHeatmapWeek[]>(generateFallbackUsageHeatmap(HEATMAP_DAYS))
@@ -512,24 +585,29 @@ const tooltipRef = ref<HTMLElement | null>(null)
 const proxyStates = reactive<Record<ProviderTab, boolean>>({
   claude: false,
   codex: false,
+  gemini: false,
 })
 const proxyBusy = reactive<Record<ProviderTab, boolean>>({
   claude: false,
   codex: false,
+  gemini: false,
 })
 
 const providerStatsMap = reactive<Record<ProviderTab, Record<string, ProviderDailyStat>>>({
   claude: {},
   codex: {},
-} as Record<ProviderTab, Record<string, ProviderDailyStat>>)
+  gemini: {},
+})
 const providerStatsLoading = reactive<Record<ProviderTab, boolean>>({
   claude: false,
   codex: false,
-} as Record<ProviderTab, boolean>)
+  gemini: false,
+})
 const providerStatsLoaded = reactive<Record<ProviderTab, boolean>>({
   claude: false,
   codex: false,
-} as Record<ProviderTab, boolean>)
+  gemini: false,
+})
 let providerStatsTimer: number | undefined
 let updateTimer: number | undefined
 const showHeatmap = ref(true)
@@ -537,6 +615,41 @@ const showHomeTitle = ref(true)
 const mcpIcon = lobeIcons['mcp'] ?? ''
 const appVersion = ref('')
 const hasUpdateAvailable = ref(false)
+<<<<<<< HEAD
+=======
+const updateReady = ref(false)
+const downloadProgress = ref(0)
+const importStatus = ref<ConfigImportStatus | null>(null)
+const importBusy = ref(false)
+
+// 黑名单状态
+const blacklistStatusMap = reactive<Record<ProviderTab, Record<string, BlacklistStatus>>>({
+  claude: {},
+  codex: {},
+  gemini: {},
+})
+let blacklistTimer: number | undefined
+
+const showImportButton = computed(() => {
+  const status = importStatus.value
+  if (!status) return false
+  return status.config_exists && (status.pending_providers || status.pending_mcp)
+})
+
+const importButtonTooltip = computed(() => {
+  if (!showImportButton.value) {
+    return t('components.main.controls.import')
+  }
+  const status = importStatus.value
+  if (!status) {
+    return t('components.main.controls.import')
+  }
+  return t('components.main.importConfig.tooltip', {
+    providers: status.pending_provider_count,
+    servers: status.pending_mcp_count,
+  })
+})
+>>>>>>> rogers/main
 
 const intensityClass = (value: number) => `gh-level-${value}`
 
@@ -727,6 +840,21 @@ const checkForUpdates = async () => {
   }
 }
 
+// 轮询更新状态
+const pollUpdateState = async () => {
+  try {
+    const state = await getUpdateState()
+    updateReady.value = state.update_ready
+    downloadProgress.value = state.download_progress
+    // 更新 hasUpdateAvailable（如果有新版本且不同于当前版本）
+    if (state.latest_known_version && state.latest_known_version !== appVersion.value) {
+      hasUpdateAvailable.value = true
+    }
+  } catch (error) {
+    console.error('failed to poll update state', error)
+  }
+}
+
 const handleAppSettingsUpdated = () => {
   void loadAppSettings()
 }
@@ -735,7 +863,8 @@ const startUpdateTimer = () => {
   stopUpdateTimer()
   updateTimer = window.setInterval(() => {
     void checkForUpdates()
-  }, 60 * 60 * 1000)
+    void pollUpdateState()
+  }, 30 * 1000) // 每30秒检查一次更新状态
 }
 
 const stopUpdateTimer = () => {
@@ -772,9 +901,27 @@ const loadUsageHeatmap = async () => {
 	}
 }
 
+// 本地 GeminiProvider 类型定义（避免依赖 CI 生成的 bindings）
+interface GeminiProvider {
+  id: string
+  name: string
+  websiteUrl?: string
+  apiKeyUrl?: string
+  baseUrl?: string
+  apiKey?: string
+  model?: string
+  description?: string
+  category?: string
+  partnerPromotionKey?: string
+  enabled: boolean
+  envConfig?: Record<string, string>
+  settingsConfig?: Record<string, any>
+}
+
 const tabs = [
   { id: 'claude', label: 'Claude Code' },
   { id: 'codex', label: 'Codex' },
+  { id: 'gemini', label: 'Gemini' },
 ] as const
 type ProviderTab = (typeof tabs)[number]['id']
 const providerTabIds = tabs.map((tab) => tab.id) as ProviderTab[]
@@ -782,14 +929,93 @@ const providerTabIds = tabs.map((tab) => tab.id) as ProviderTab[]
 const cards = reactive<Record<ProviderTab, AutomationCard[]>>({
   claude: createAutomationCards(automationCardGroups.claude),
   codex: createAutomationCards(automationCardGroups.codex),
+  gemini: [],
 })
 const draggingId = ref<number | null>(null)
 
+// Gemini Provider 到 AutomationCard 的转换
+const geminiToCard = (provider: GeminiProvider, index: number): AutomationCard => ({
+  id: 300 + index, // Gemini 使用 300+ 的 ID 范围
+  name: provider.name,
+  apiUrl: provider.baseUrl || '',
+  apiKey: provider.apiKey || '',
+  officialSite: provider.websiteUrl || '',
+  icon: 'gemini',
+  tint: 'rgba(251, 146, 60, 0.18)',
+  accent: '#fb923c',
+  enabled: provider.enabled,
+})
+
+// AutomationCard 到 Gemini Provider 的转换
+const cardToGemini = (card: AutomationCard, original: GeminiProvider): GeminiProvider => ({
+  ...original,
+  name: card.name,
+  baseUrl: card.apiUrl,
+  apiKey: card.apiKey,
+  websiteUrl: card.officialSite,
+  enabled: card.enabled,
+})
+
 const serializeProviders = (providers: AutomationCard[]) => providers.map((provider) => ({ ...provider }))
+
+// 存储 Gemini 原始数据，用于转换回去
+const geminiProvidersCache = ref<GeminiProvider[]>([])
 
 const persistProviders = async (tabId: ProviderTab) => {
   try {
-    await SaveProviders(tabId, serializeProviders(cards[tabId]))
+    if (tabId === 'gemini') {
+      // Gemini 使用独立的保存逻辑
+      // 1. 收集当前卡片的 name 集合
+      const currentNames = new Set(cards.gemini.map(c => c.name))
+
+      // 2. 删除不在当前卡片中的 provider
+      for (const cached of geminiProvidersCache.value) {
+        if (!currentNames.has(cached.name)) {
+          await DeleteGeminiProvider(cached.id)
+        }
+      }
+
+      // 3. 添加或更新 provider
+      for (const card of cards.gemini) {
+        const original = geminiProvidersCache.value.find(p => p.name === card.name)
+
+        if (original) {
+          // 已存在的 provider，更新
+          await UpdateGeminiProvider(cardToGemini(card, original))
+        } else {
+          // 新添加的 provider，调用 AddProvider
+          const newProvider: GeminiProvider = {
+            id: `gemini-${Date.now()}`,
+            name: card.name,
+            baseUrl: card.apiUrl,
+            apiKey: card.apiKey,
+            websiteUrl: card.officialSite,
+            enabled: card.enabled,
+          }
+          await AddGeminiProvider(newProvider)
+        }
+      }
+
+      // 4. 刷新缓存以获取最新的 ID
+      const updatedProviders = await GetGeminiProviders()
+      geminiProvidersCache.value = updatedProviders
+
+      // 5. 保存排序：按 cards.gemini 的顺序构建 ID 列表
+      const orderedIds: string[] = []
+      for (const card of cards.gemini) {
+        const provider = updatedProviders.find(p => p.name === card.name)
+        if (provider) {
+          orderedIds.push(provider.id)
+        }
+      }
+      if (orderedIds.length > 0) {
+        await ReorderGeminiProviders(orderedIds)
+        // 重新获取排序后的数据
+        geminiProvidersCache.value = await GetGeminiProviders()
+      }
+    } else {
+      await SaveProviders(tabId, serializeProviders(cards[tabId]))
+    }
   } catch (error) {
     console.error('Failed to save providers', error)
   }
@@ -802,11 +1028,18 @@ const replaceProviders = (tabId: ProviderTab, data: AutomationCard[]) => {
 const loadProvidersFromDisk = async () => {
   for (const tab of providerTabIds) {
     try {
-      const saved = await LoadProviders(tab)
-      if (Array.isArray(saved)) {
-        replaceProviders(tab, saved as AutomationCard[])
+      if (tab === 'gemini') {
+        // Gemini 使用独立的加载逻辑
+        const geminiProviders = await GetGeminiProviders()
+        geminiProvidersCache.value = geminiProviders
+        cards.gemini.splice(0, cards.gemini.length, ...geminiProviders.map(geminiToCard))
       } else {
-        await persistProviders(tab)
+        const saved = await LoadProviders(tab)
+        if (Array.isArray(saved)) {
+          replaceProviders(tab, saved as AutomationCard[])
+        } else {
+          await persistProviders(tab)
+        }
       }
     } catch (error) {
       console.error('Failed to load providers', error)
@@ -816,8 +1049,13 @@ const loadProvidersFromDisk = async () => {
 
 const refreshProxyState = async (tab: ProviderTab) => {
   try {
-    const status = await fetchProxyStatus(tab)
-    proxyStates[tab] = Boolean(status?.enabled)
+    if (tab === 'gemini') {
+      const status = await fetchGeminiProxyStatus()
+      proxyStates[tab] = Boolean(status?.enabled)
+    } else {
+      const status = await fetchProxyStatus(tab as 'claude' | 'codex')
+      proxyStates[tab] = Boolean(status?.enabled)
+    }
   } catch (error) {
     console.error(`Failed to fetch proxy status for ${tab}`, error)
     proxyStates[tab] = false
@@ -830,10 +1068,18 @@ const onProxyToggle = async () => {
   proxyBusy[tab] = true
   const nextState = !proxyStates[tab]
   try {
-    if (nextState) {
-      await enableProxy(tab)
+    if (tab === 'gemini') {
+      if (nextState) {
+        await enableGeminiProxy()
+      } else {
+        await disableGeminiProxy()
+      }
     } else {
-      await disableProxy(tab)
+      if (nextState) {
+        await enableProxy(tab as 'claude' | 'codex')
+      } else {
+        await disableProxy(tab as 'claude' | 'codex')
+      }
     }
     proxyStates[tab] = nextState
   } catch (error) {
@@ -846,7 +1092,8 @@ const onProxyToggle = async () => {
 const loadProviderStats = async (tab: ProviderTab) => {
   providerStatsLoading[tab] = true
   try {
-    const stats = await fetchProviderDailyStats(tab)
+    // Gemini 统计数据目前通过相同的日志接口，直接查询
+    const stats = await fetchProviderDailyStats(tab as 'claude' | 'codex' | 'gemini')
     const mapped: Record<string, ProviderDailyStat> = {}
     ;(stats ?? []).forEach((stat) => {
       mapped[normalizeProviderKey(stat.provider)] = stat
@@ -865,6 +1112,81 @@ const loadProviderStats = async (tab: ProviderTab) => {
     }
   } finally {
     providerStatsLoading[tab] = false
+  }
+}
+
+// 加载黑名单状态
+const loadBlacklistStatus = async (tab: ProviderTab) => {
+  try {
+    const statuses = await getBlacklistStatus(tab)
+    const map: Record<string, BlacklistStatus> = {}
+    statuses.forEach(status => {
+      map[status.providerName] = status
+    })
+    blacklistStatusMap[tab] = map
+  } catch (err) {
+    console.error(`加载 ${tab} 黑名单状态失败:`, err)
+  }
+}
+
+// 手动解禁并重置（完全重置）
+const handleUnblockAndReset = async (providerName: string) => {
+  try {
+    await Call.ByName('codeswitch/services.BlacklistService.ManualUnblockAndReset', activeTab.value, providerName)
+    showToast(t('components.main.blacklist.unblockSuccess', { name: providerName }), 'success')
+    await loadBlacklistStatus(activeTab.value)
+  } catch (err) {
+    console.error('解除拉黑失败:', err)
+    showToast(t('components.main.blacklist.unblockFailed'), 'error')
+  }
+}
+
+// 手动清零等级（仅重置等级）
+const handleResetLevel = async (providerName: string) => {
+  try {
+    await Call.ByName('codeswitch/services.BlacklistService.ManualResetLevel', activeTab.value, providerName)
+    showToast(t('components.main.blacklist.resetLevelSuccess', { name: providerName }), 'success')
+    await loadBlacklistStatus(activeTab.value)
+  } catch (err) {
+    console.error('清零等级失败:', err)
+    showToast(t('components.main.blacklist.resetLevelFailed'), 'error')
+  }
+}
+
+// 手动解禁（向后兼容，调用 handleUnblockAndReset）
+const handleUnblock = handleUnblockAndReset
+
+// 格式化倒计时
+const formatBlacklistCountdown = (remainingSeconds: number): string => {
+  const minutes = Math.floor(remainingSeconds / 60)
+  const seconds = remainingSeconds % 60
+  return `${minutes}${t('components.main.blacklist.minutes')}${seconds}${t('components.main.blacklist.seconds')}`
+}
+
+// 获取 provider 黑名单状态
+const getProviderBlacklistStatus = (providerName: string): BlacklistStatus | null => {
+  return blacklistStatusMap[activeTab.value][providerName] || null
+}
+
+// 刷新所有数据
+const refreshing = ref(false)
+const refreshAllData = async () => {
+  if (refreshing.value) return
+  refreshing.value = true
+  try {
+    await Promise.all([
+      loadUsageHeatmap(),
+      loadProvidersFromDisk(),
+      ...providerTabIds.map(refreshProxyState),
+      ...providerTabIds.map((tab) => loadProviderStats(tab)),
+      ...providerTabIds.map((tab) => loadBlacklistStatus(tab)), // 同步刷新黑名单状态
+      refreshImportStatus(),
+      pollUpdateState()
+    ])
+  } catch (error) {
+    console.error('Failed to refresh data', error)
+  } finally {
+    refreshing.value = false
   }
 }
 
@@ -975,8 +1297,46 @@ onMounted(async () => {
   await Promise.all(providerTabIds.map((tab) => loadProviderStats(tab)))
   await loadAppSettings()
   await checkForUpdates()
+<<<<<<< HEAD
+=======
+  await pollUpdateState() // 首次加载更新状态
+  await refreshImportStatus()
+>>>>>>> rogers/main
   startProviderStatsTimer()
   startUpdateTimer()
+
+  // 加载初始黑名单状态
+  await Promise.all(providerTabIds.map((tab) => loadBlacklistStatus(tab)))
+
+  // 每秒更新黑名单倒计时
+  blacklistTimer = window.setInterval(() => {
+    const tab = activeTab.value
+    Object.keys(blacklistStatusMap[tab]).forEach(providerName => {
+      const status = blacklistStatusMap[tab][providerName]
+      if (status && status.isBlacklisted && status.remainingSeconds > 0) {
+        status.remainingSeconds--
+        if (status.remainingSeconds <= 0) {
+          loadBlacklistStatus(tab)
+        }
+      }
+    })
+  }, 1000)
+
+  // 窗口焦点事件：从最小化恢复时立即刷新黑名单状态
+  const handleWindowFocus = () => {
+    void loadBlacklistStatus(activeTab.value)
+  }
+  window.addEventListener('focus', handleWindowFocus)
+
+  // 定期轮询黑名单状态（每 10 秒）
+  const blacklistPollingTimer = window.setInterval(() => {
+    void loadBlacklistStatus(activeTab.value)
+  }, 10_000)
+
+  // 存储定时器 ID 以便清理
+  ;(window as any).__blacklistPollingTimer = blacklistPollingTimer
+  ;(window as any).__handleWindowFocus = handleWindowFocus
+
   window.addEventListener('app-settings-updated', handleAppSettingsUpdated)
 })
 
@@ -984,11 +1344,27 @@ onUnmounted(() => {
   stopProviderStatsTimer()
   window.removeEventListener('app-settings-updated', handleAppSettingsUpdated)
   stopUpdateTimer()
+
+  // 清理黑名单相关定时器和事件监听
+  if (blacklistTimer) {
+    window.clearInterval(blacklistTimer)
+  }
+  if ((window as any).__blacklistPollingTimer) {
+    window.clearInterval((window as any).__blacklistPollingTimer)
+  }
+  if ((window as any).__handleWindowFocus) {
+    window.removeEventListener('focus', (window as any).__handleWindowFocus)
+  }
 })
 
 const selectedIndex = ref(0)
 const activeTab = computed<ProviderTab>(() => tabs[selectedIndex.value]?.id ?? tabs[0].id)
 const activeCards = computed(() => cards[activeTab.value] ?? [])
+
+// 监听 tab 切换，立即刷新黑名单状态
+watch(activeTab, (newTab) => {
+  void loadBlacklistStatus(newTab)
+})
 const currentProxyLabel = computed(() =>
   activeTab.value === 'claude'
     ? t('components.main.relayToggle.hostClaude')
@@ -1019,10 +1395,35 @@ const toggleTheme = () => {
   setTheme(next)
 }
 
-const openGitHub = () => {
-  Browser.OpenURL(releasePageUrl).catch(() => {
-    console.error('failed to open github')
-  })
+const handleGithubClick = async () => {
+  if (updateReady.value) {
+    // 更新已准备好，提示重启
+    const confirmed = confirm(`新版本已准备好，是否立即重启应用？`)
+    if (confirmed) {
+      try {
+        await restartApp()
+      } catch (error) {
+        console.error('failed to restart app', error)
+        alert('重启失败，请手动重启应用')
+      }
+    }
+  } else {
+    // 打开 GitHub
+    Browser.OpenURL(releasePageUrl).catch(() => {
+      console.error('failed to open github')
+    })
+  }
+}
+
+// 获取 GitHub 图标的 tooltip
+const getGithubTooltip = () => {
+  if (updateReady.value) {
+    return t('components.main.controls.updateReady')
+  } else if (hasUpdateAvailable.value) {
+    return t('components.main.controls.githubUpdate')
+  } else {
+    return t('components.main.controls.github')
+  }
 }
 
 type VendorForm = {
@@ -1099,7 +1500,7 @@ const closeConfirm = () => {
   confirmState.card = null
 }
 
-const submitModal = () => {
+const submitModal = async () => {
   const list = cards[modalState.tabId]
   if (!list) return
   const name = modalState.form.name.trim()
@@ -1126,7 +1527,7 @@ const submitModal = () => {
       supportedModels: modalState.form.supportedModels || {},
       modelMapping: modalState.form.modelMapping || {},
     })
-    void persistProviders(modalState.tabId)
+    await persistProviders(modalState.tabId)
   } else {
     const newCard: AutomationCard = {
       id: Date.now(),
@@ -1142,7 +1543,7 @@ const submitModal = () => {
       modelMapping: modalState.form.modelMapping || {},
     }
     list.push(newCard)
-    void persistProviders(modalState.tabId)
+    await persistProviders(modalState.tabId)
   }
 
   closeModal()
@@ -1152,13 +1553,13 @@ const configure = (card: AutomationCard) => {
   openEditModal(card)
 }
 
-const remove = (id: number, tabId: ProviderTab = activeTab.value) => {
+const remove = async (id: number, tabId: ProviderTab = activeTab.value) => {
   const list = cards[tabId]
   if (!list) return
   const index = list.findIndex((card) => card.id === id)
   if (index > -1) {
     list.splice(index, 1)
-    void persistProviders(tabId)
+    await persistProviders(tabId)
   }
 }
 
@@ -1168,9 +1569,52 @@ const requestRemove = (card: AutomationCard) => {
   confirmState.open = true
 }
 
-const confirmRemove = () => {
+// 复制供应商
+const handleDuplicate = async (card: AutomationCard) => {
+  try {
+    const tab = activeTab.value
+
+    if (tab === 'gemini') {
+      // Gemini 使用字符串 ID，需要从 cache 中找到原始 provider
+      const index = cards.gemini.findIndex(c => c.id === card.id)
+      if (index === -1 || !geminiProvidersCache.value[index]) {
+        console.error('[Duplicate] 未找到 Gemini provider')
+        return
+      }
+
+      const originalProvider = geminiProvidersCache.value[index]
+      // 调用 Gemini 的 DuplicateProvider API（字符串 ID）
+      const newProvider = await Call.ByName(
+        'codeswitch/services.GeminiService.DuplicateProvider',
+        originalProvider.id
+      )
+
+      if (!newProvider) {
+        console.warn('[Duplicate] DuplicateProvider 返回空结果，已跳过刷新')
+        return
+      }
+
+      console.log(`[Duplicate] Gemini Provider "${card.name}" duplicated`)
+    } else {
+      // Claude/Codex 使用数字 ID
+      const newProvider = await DuplicateProvider(tab, card.id)
+      if (!newProvider) {
+        console.warn('[Duplicate] DuplicateProvider 返回空结果，已跳过刷新')
+        return
+      }
+      console.log(`[Duplicate] Provider "${card.name}" duplicated as "${newProvider.name}"`)
+    }
+
+    // 刷新列表以显示新副本
+    await loadProvidersFromDisk()
+  } catch (error) {
+    console.error('[Duplicate] Failed to duplicate provider:', error)
+  }
+}
+
+const confirmRemove = async () => {
   if (!confirmState.card) return
-  remove(confirmState.card.id, confirmState.tabId)
+  await remove(confirmState.card.id, confirmState.tabId)
   closeConfirm()
 }
 
@@ -1178,7 +1622,7 @@ const onDragStart = (id: number) => {
   draggingId.value = id
 }
 
-const onDrop = (targetId: number) => {
+const onDrop = async (targetId: number) => {
   if (draggingId.value === null || draggingId.value === targetId) return
   const currentTab = activeTab.value
   const list = cards[currentTab]
@@ -1190,7 +1634,7 @@ const onDrop = (targetId: number) => {
   const newIndex = fromIndex < toIndex ? toIndex - 1 : toIndex
   list.splice(newIndex, 0, moved)
   draggingId.value = null
-  void persistProviders(currentTab)
+  await persistProviders(currentTab)
 }
 
 const onDragEnd = () => {
@@ -1232,4 +1676,487 @@ const onTabChange = (idx: number) => {
   font-size: 0.85rem;
 }
 
+<<<<<<< HEAD
+=======
+@keyframes import-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Level Badge 样式 */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+}
+
+/* Card title row badge 定位 */
+.card-title-row .level-badge {
+  margin-left: 8px;
+}
+
+/* 黑名单等级徽章与调度等级徽章的间距 */
+.card-title-row .blacklist-level-badge {
+  margin-left: 4px;
+}
+
+/* Level 配色方案：从绿色（高优先级）到红色（低优先级）*/
+.level-badge.level-1 {
+  background: rgba(16, 185, 129, 0.12);
+  color: rgb(5, 150, 105);
+}
+
+.level-badge.level-2 {
+  background: rgba(34, 197, 94, 0.12);
+  color: rgb(22, 163, 74);
+}
+
+.level-badge.level-3 {
+  background: rgba(132, 204, 22, 0.12);
+  color: rgb(101, 163, 13);
+}
+
+.level-badge.level-4 {
+  background: rgba(234, 179, 8, 0.12);
+  color: rgb(161, 98, 7);
+}
+
+.level-badge.level-5 {
+  background: rgba(245, 158, 11, 0.12);
+  color: rgb(180, 83, 9);
+}
+
+.level-badge.level-6 {
+  background: rgba(249, 115, 22, 0.12);
+  color: rgb(194, 65, 12);
+}
+
+.level-badge.level-7 {
+  background: rgba(239, 68, 68, 0.12);
+  color: rgb(185, 28, 28);
+}
+
+.level-badge.level-8 {
+  background: rgba(220, 38, 38, 0.12);
+  color: rgb(153, 27, 27);
+}
+
+.level-badge.level-9 {
+  background: rgba(190, 18, 60, 0.12);
+  color: rgb(136, 19, 55);
+}
+
+.level-badge.level-10 {
+  background: rgba(159, 18, 57, 0.12);
+  color: rgb(112, 26, 52);
+}
+
+/* 暗色模式适配 */
+:global(.dark) .level-badge.level-1 {
+  background: rgba(16, 185, 129, 0.18);
+  color: rgb(52, 211, 153);
+}
+
+:global(.dark) .level-badge.level-2 {
+  background: rgba(34, 197, 94, 0.18);
+  color: rgb(74, 222, 128);
+}
+
+:global(.dark) .level-badge.level-3 {
+  background: rgba(132, 204, 22, 0.18);
+  color: rgb(163, 230, 53);
+}
+
+:global(.dark) .level-badge.level-4 {
+  background: rgba(234, 179, 8, 0.18);
+  color: rgb(250, 204, 21);
+}
+
+:global(.dark) .level-badge.level-5 {
+  background: rgba(245, 158, 11, 0.18);
+  color: rgb(251, 191, 36);
+}
+
+:global(.dark) .level-badge.level-6 {
+  background: rgba(249, 115, 22, 0.18);
+  color: rgb(251, 146, 60);
+}
+
+:global(.dark) .level-badge.level-7 {
+  background: rgba(239, 68, 68, 0.18);
+  color: rgb(248, 113, 113);
+}
+
+:global(.dark) .level-badge.level-8 {
+  background: rgba(220, 38, 38, 0.18);
+  color: rgb(239, 68, 68);
+}
+
+:global(.dark) .level-badge.level-9 {
+  background: rgba(190, 18, 60, 0.18);
+  color: rgb(244, 63, 94);
+}
+
+:global(.dark) .level-badge.level-10 {
+  background: rgba(159, 18, 57, 0.18);
+  color: rgb(236, 72, 153);
+}
+
+/* Level Select Dropdown 样式 */
+.level-select {
+  position: relative;
+}
+
+.level-select-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.level-select-button:hover {
+  border-color: var(--color-border-hover);
+  background: var(--color-bg-tertiary);
+}
+
+.level-select-button:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.level-select-button svg {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.level-label {
+  flex: 1;
+  text-align: left;
+}
+
+.level-select-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--mac-surface);
+  border: 1px solid var(--mac-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  padding: 4px;
+}
+
+:global(.dark) .level-select-options {
+  background: var(--mac-surface);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.level-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.level-option:hover,
+.level-option.active {
+  background: var(--mac-surface-strong);
+}
+
+.level-option.selected {
+  background: color-mix(in srgb, var(--mac-accent) 12%, transparent);
+  font-weight: 500;
+}
+
+.level-option .level-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--mac-text);
+}
+
+.level-option.selected .level-name {
+  color: var(--mac-accent);
+}
+
+/* 黑名单横幅 */
+.blacklist-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid #ef4444;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.blacklist-banner.dark {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.blacklist-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blacklist-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.blacklist-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.blacklist-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.unblock-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.unblock-btn.primary {
+  background: #ef4444;
+  flex: 1;
+}
+
+.unblock-btn.primary:hover {
+  background: #dc2626;
+}
+
+.unblock-btn.secondary {
+  background: #6b7280;
+  flex: 1;
+}
+
+.unblock-btn.secondary:hover {
+  background: #4b5563;
+}
+
+.unblock-btn:active {
+  transform: scale(0.98);
+}
+
+/* 等级徽章（黑名单模式：黑色/红色） */
+.level-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.level-badge.level-1 {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.level-badge.level-2 {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.level-badge.level-3 {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.level-badge.level-4 {
+  background: #fca5a5;
+  color: #b91c1c;
+}
+
+.level-badge.level-5 {
+  background: #ef4444;
+  color: #fff;
+}
+
+.level-badge.dark.level-1 {
+  background: rgba(217, 119, 6, 0.2);
+  color: #fbbf24;
+}
+
+.level-badge.dark.level-2 {
+  background: rgba(234, 88, 12, 0.2);
+  color: #fb923c;
+}
+
+.level-badge.dark.level-3 {
+  background: rgba(220, 38, 38, 0.2);
+  color: #f87171;
+}
+
+.level-badge.dark.level-4 {
+  background: rgba(185, 28, 28, 0.2);
+  color: #ef4444;
+}
+
+.level-badge.dark.level-5 {
+  background: rgba(220, 38, 38, 0.3);
+  color: #fff;
+}
+
+/* 独立等级徽章（未拉黑但有等级） */
+.level-badge-standalone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-top: 8px;
+  background: rgba(156, 163, 175, 0.1);
+  border-left: 3px solid #9ca3af;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.level-hint {
+  flex: 1;
+  font-weight: 500;
+}
+
+.reset-level-mini {
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.reset-level-mini:hover {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+.reset-level-mini:active {
+  transform: scale(0.95);
+}
+
+/* 黑名单等级徽章（卡片标题行） */
+.blacklist-level-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.blacklist-level-badge.bl-level-0 {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.blacklist-level-badge.bl-level-1 {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.blacklist-level-badge.bl-level-2 {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.blacklist-level-badge.bl-level-3 {
+  background: #fecaca;
+  color: #dc2626;
+}
+
+.blacklist-level-badge.bl-level-4 {
+  background: #fca5a5;
+  color: #b91c1c;
+}
+
+.blacklist-level-badge.bl-level-5 {
+  background: #ef4444;
+  color: #fff;
+}
+
+.blacklist-level-badge.dark.bl-level-0 {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+}
+
+.blacklist-level-badge.dark.bl-level-1 {
+  background: rgba(217, 119, 6, 0.2);
+  color: #fbbf24;
+}
+
+.blacklist-level-badge.dark.bl-level-2 {
+  background: rgba(234, 88, 12, 0.2);
+  color: #fb923c;
+}
+
+.blacklist-level-badge.dark.bl-level-3 {
+  background: rgba(220, 38, 38, 0.2);
+  color: #f87171;
+}
+
+.blacklist-level-badge.dark.bl-level-4 {
+  background: rgba(185, 28, 28, 0.2);
+  color: #ef4444;
+}
+
+.blacklist-level-badge.dark.bl-level-5 {
+  background: rgba(220, 38, 38, 0.3);
+  color: #fff;
+}
+>>>>>>> rogers/main
 </style>

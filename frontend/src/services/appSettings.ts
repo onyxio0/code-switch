@@ -4,12 +4,14 @@ export type AppSettings = {
   show_heatmap: boolean
   show_home_title: boolean
   auto_start: boolean
+  auto_update: boolean
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
   show_heatmap: true,
   show_home_title: true,
   auto_start: false,
+  auto_update: true,
 }
 
 export const fetchAppSettings = async (): Promise<AppSettings> => {

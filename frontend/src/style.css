@@ -371,21 +371,35 @@ html.dark .mac-sidebar-item:hover {
 	gap: 4px;
 	overflow-x: auto;
 	padding-bottom: 8px;
-	scrollbar-width: none;
-	-ms-overflow-style: none;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255,255,255,0.2) transparent;
 	width: 100%;
-	justify-content: space-between;
+	justify-content: flex-start;
 }
 
 .contrib-grid::-webkit-scrollbar {
-  display: none;
+	height: 6px;
+}
+
+.contrib-grid::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.contrib-grid::-webkit-scrollbar-thumb {
+	background: rgba(255,255,255,0.2);
+	border-radius: 3px;
+}
+
+.contrib-grid::-webkit-scrollbar-thumb:hover {
+	background: rgba(255,255,255,0.3);
 }
 
 .contrib-column {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
-	flex: 1;
+	flex: 0 0 auto;
+	min-width: 14px;
 }
 
 .contrib-cell {
@@ -472,19 +486,39 @@ html.dark .mac-sidebar-item:hover {
 
 .contrib-cell.gh-level-0 { opacity: 0.4; }
 
-@media (max-width: 640px) {
+/* 中等尺寸窗口 (640-960px) */
+@media (max-width: 960px) {
 	.contrib-wall {
 		padding: 24px;
+	}
+
+	.contrib-column {
+		min-width: 12px;
 	}
 
 	.contrib-grid {
 		gap: 3px;
 	}
+}
+
+/* 小窗口 (< 640px) */
+@media (max-width: 640px) {
+	.contrib-wall {
+		padding: 16px;
+	}
+
+	.contrib-grid {
+		gap: 2px;
+	}
+
+	.contrib-column {
+		min-width: 10px;
+	}
 
 	.contrib-cell,
 	.legend-box {
-		width: 12px;
-		height: 12px;
+		width: 10px;
+		height: 10px;
 	}
 }
 .automation-section {
@@ -501,6 +535,14 @@ html.dark .mac-sidebar-item:hover {
   padding-inline: 0;
   flex-wrap: wrap;
   row-gap: 16px;
+  position: relative;
+}
+
+/* 左侧占位符，用于居中 tab-group */
+.section-header::before {
+  content: '';
+  flex: 1;
+  min-width: 0;
 }
 
 .tab-group {
@@ -522,21 +564,38 @@ html.dark .mac-sidebar-item:hover {
 }
 
 .section-header > .tab-group {
-  align-self: flex-start;
+  align-self: center;
 }
 
 .section-controls {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  flex: 0 0 auto;
+  flex: 1;
   flex-wrap: wrap;
   justify-content: flex-end;
-  margin-left: auto;
+  min-width: 0;
 }
 
 .section-header.section-header-solo {
   justify-content: flex-end;
+}
+
+/* 小窗口下 Tab 和 Controls 垂直堆叠 */
+@media (max-width: 700px) {
+  .section-header {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-header::before {
+    display: none;
+  }
+
+  .section-controls {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .main-shell {
@@ -581,6 +640,114 @@ html.dark .mac-sidebar-item:hover {
     transform: translateY(0);
     box-shadow: 0 0 0 rgba(14, 165, 233, 0.4);
   }
+}
+
+/* 更新徽章基础样式 */
+.update-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #0ea5e9; /* 蓝色 - "New" */
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+  z-index: 10;
+}
+
+/* 下载中徽章 - 黄色 */
+.update-badge.downloading {
+  background: #f59e0b; /* 黄色 */
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+/* Ready 徽章 - 绿色脉冲 */
+.update-badge.pulse {
+  background: #10b981; /* 绿色 */
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  animation: badge-pulse 2s ease-in-out infinite;
+}
+
+/* 更新就绪时的 GitHub 图标颜色 */
+.github-icon.update-ready svg {
+  color: #10b981;
+}
+
+/* 徽章脉冲动画 */
+@keyframes badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 2px 16px rgba(16, 185, 129, 0.8);
+  }
+}
+
+/* 更新检查按钮样式 - 仅用于设置页面，不影响其他页面的按钮 */
+.general-page .action-btn,
+.general-page .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  min-height: 36px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn {
+  background: var(--mac-surface-strong);
+  color: var(--mac-text);
+  border: 1px solid var(--mac-border);
+}
+
+.action-btn:hover:not(:disabled) {
+  background: var(--mac-surface-hover);
+}
+
+.primary-btn {
+  background: #0ea5e9;
+  color: white;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: #0284c7;
+}
+
+.action-btn:disabled,
+.primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 版本号和信息文本样式 */
+.info-text,
+.version-text {
+  font-size: 0.875rem;
+  color: var(--mac-text-secondary);
+}
+
+.version-text.highlight {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.warning-badge {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  margin-left: 8px;
 }
 
 .global-eyebrow {
@@ -1183,6 +1350,24 @@ html.dark .ghost-icon:hover {
   transform: translateX(-50%) translateY(2px);
 }
 
+/* 刷新按钮旋转动画 */
+.ghost-icon.rotating svg {
+  animation: spin 1s linear infinite;
+}
+
+.ghost-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .modal-backdrop {
   position: fixed;
@@ -1514,4 +1699,27 @@ html.dark .btn-ghost:focus-visible {
 
 .general-page .mac-panel {
   width: 100%;
+}
+
+/* 全局按钮样式修复 - 防止 Tailwind Preflight 导致的布局问题 */
+button:where(:not(.ghost-icon):not(.mac-switch):not(.nav-item):not(.platform-tab):not(.tab-pill):not(.collapse-btn):not(.toggle-switch):not(.action-btn):not(.remove-btn)) {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  line-height: 1 !important;
+  width: auto !important;
+  min-width: auto !important;
+  padding: 10px 20px !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+/* 修复按钮内 SVG 被 Tailwind preflight 设置为 display:block 导致的布局问题 */
+button svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  display: inline-block !important;
 }

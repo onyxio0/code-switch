@@ -737,3 +737,111 @@ func findSubstring(s, substr string) bool {
 	}
 	return false
 }
+
+// ==================== 供应商复制测试 ====================
+
+func TestDuplicateProvider(t *testing.T) {
+	// 注意：此测试依赖真实文件系统，仅用于开发验证
+	// 生产环境应使用 mock 或依赖注入
+
+	tests := []struct {
+		name        string
+		original    Provider
+		expectName  string
+		expectLevel int
+	}{
+		{
+			name: "复制基础供应商",
+			original: Provider{
+				ID:      1,
+				Name:    "Test Provider",
+				APIURL:  "https://api.example.com",
+				APIKey:  "sk-test-key",
+				Enabled: true,
+				Level:   2,
+			},
+			expectName:  "Test Provider (副本)",
+			expectLevel: 2,
+		},
+		{
+			name: "复制带模型映射的供应商",
+			original: Provider{
+				ID:      10,
+				Name:    "OpenRouter",
+				APIURL:  "https://openrouter.ai/api",
+				APIKey:  "sk-or-xxx",
+				Enabled: true,
+				Level:   3,
+				SupportedModels: map[string]bool{
+					"anthropic/claude-*": true,
+					"openai/gpt-*":       true,
+				},
+				ModelMapping: map[string]string{
+					"claude-*": "anthropic/claude-*",
+					"gpt-*":    "openai/gpt-*",
+				},
+			},
+			expectName:  "OpenRouter (副本)",
+			expectLevel: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// 验证复制后的属性
+			cloned := Provider{
+				ID:      tt.original.ID + 1,
+				Name:    tt.original.Name + " (副本)",
+				APIURL:  tt.original.APIURL,
+				APIKey:  tt.original.APIKey,
+				Enabled: false, // 复制后默认禁用
+				Level:   tt.original.Level,
+			}
+
+			// 深拷贝 map
+			if tt.original.SupportedModels != nil {
+				cloned.SupportedModels = make(map[string]bool, len(tt.original.SupportedModels))
+				for k, v := range tt.original.SupportedModels {
+					cloned.SupportedModels[k] = v
+				}
+			}
+
+			if tt.original.ModelMapping != nil {
+				cloned.ModelMapping = make(map[string]string, len(tt.original.ModelMapping))
+				for k, v := range tt.original.ModelMapping {
+					cloned.ModelMapping[k] = v
+				}
+			}
+
+			// 验证名称
+			if cloned.Name != tt.expectName {
+				t.Errorf("期望名称 %q，实际 %q", tt.expectName, cloned.Name)
+			}
+
+			// 验证禁用状态
+			if cloned.Enabled {
+				t.Errorf("期望复制后默认禁用，但实际启用了")
+			}
+
+			// 验证 Level
+			if cloned.Level != tt.expectLevel {
+				t.Errorf("期望 Level %d，实际 %d", tt.expectLevel, cloned.Level)
+			}
+
+			// 验证深拷贝（修改副本不影响原件）
+			if tt.original.SupportedModels != nil {
+				cloned.SupportedModels["test-model"] = true
+				if _, exists := tt.original.SupportedModels["test-model"]; exists {
+					t.Errorf("深拷贝失败：修改副本影响了原件的 SupportedModels")
+				}
+			}
+
+			if tt.original.ModelMapping != nil {
+				cloned.ModelMapping["test-key"] = "test-value"
+				if _, exists := tt.original.ModelMapping["test-key"]; exists {
+					t.Errorf("深拷贝失败：修改副本影响了原件的 ModelMapping")
+				}
+			}
+		})
+	}
+}

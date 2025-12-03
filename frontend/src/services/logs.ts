@@ -1,8 +1,10 @@
 import { Call } from '@wailsio/runtime'
 
+export type LogPlatform = 'claude' | 'codex' | 'gemini'
+
 export type RequestLog = {
   id: number
-  platform: string
+  platform: LogPlatform | ''
   model: string
   provider: string
   http_code: number
@@ -25,7 +27,7 @@ export type RequestLog = {
 }
 
 type RequestLogQuery = {
-  platform?: string
+  platform?: LogPlatform | ''
   provider?: string
   limit?: number
 }
@@ -37,7 +39,7 @@ export const fetchRequestLogs = async (query: RequestLogQuery = {}): Promise<Req
   return Call.ByName('codeswitch/services.LogService.ListRequestLogs', platform, provider, limit)
 }
 
-export const fetchLogProviders = async (platform = ''): Promise<string[]> => {
+export const fetchLogProviders = async (platform: LogPlatform | '' = ''): Promise<string[]> => {
   return Call.ByName('codeswitch/services.LogService.ListProviders', platform)
 }
 
@@ -67,7 +69,7 @@ export type LogStats = {
   series: LogStatsSeries[]
 }
 
-export const fetchLogStats = async (platform = ''): Promise<LogStats> => {
+export const fetchLogStats = async (platform: LogPlatform | '' = ''): Promise<LogStats> => {
   return Call.ByName('codeswitch/services.LogService.StatsSince', platform)
 }
 
@@ -86,7 +88,7 @@ export type ProviderDailyStat = {
 }
 
 export const fetchProviderDailyStats = async (
-  platform = '',
+  platform: LogPlatform | '' = '',
 ): Promise<ProviderDailyStat[]> => {
   return Call.ByName('codeswitch/services.LogService.ProviderDailyStats', platform)
 }

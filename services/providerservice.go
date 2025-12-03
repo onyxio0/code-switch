@@ -10,7 +10,7 @@ import (
 )
 
 type Provider struct {
-	ID      int    `json:"id"`
+	ID      int64  `json:"id"` // 修复：使用 int64 支持大 ID 值
 	Name    string `json:"name"`
 	APIURL  string `json:"apiUrl"`
 	APIKey  string `json:"apiKey"`
@@ -85,7 +85,7 @@ func (ps *ProviderService) SaveProviders(kind string, providers []Provider) erro
 	if err != nil {
 		return err
 	}
-	nameByID := make(map[int]string, len(existingProviders))
+	nameByID := make(map[int64]string, len(existingProviders))
 	for _, p := range existingProviders {
 		nameByID[p.ID] = p.Name
 	}
@@ -146,6 +146,77 @@ func (ps *ProviderService) LoadProviders(kind string) ([]Provider, error) {
 		return nil, err
 	}
 	return envelope.Providers, nil
+}
+
+// DuplicateProvider 复制供应商配置，生成新的副本
+// 返回新创建的 Provider 对象
+func (ps *ProviderService) DuplicateProvider(kind string, sourceID int64) (*Provider, error) {
+	ps.mu.Lock()
+	defer ps.mu.Unlock()
+
+	// 1. 加载现有配置
+	providers, err := ps.LoadProviders(kind)
+	if err != nil {
+		return nil, fmt.Errorf("加载供应商配置失败: %w", err)
+	}
+
+	// 2. 查找源供应商
+	var source *Provider
+	for i := range providers {
+		if providers[i].ID == sourceID {
+			source = &providers[i]
+			break
+		}
+	}
+	if source == nil {
+		return nil, fmt.Errorf("未找到 ID 为 %d 的供应商", sourceID)
+	}
+
+	// 3. 生成新 ID（当前最大 ID + 1）
+	maxID := int64(0)
+	for _, p := range providers {
+		if p.ID > maxID {
+			maxID = p.ID
+		}
+	}
+	newID := maxID + 1
+
+	// 4. 克隆配置（深拷贝）
+	cloned := &Provider{
+		ID:      newID,
+		Name:    source.Name + " (副本)",
+		APIURL:  source.APIURL,
+		APIKey:  source.APIKey,
+		Site:    source.Site,
+		Icon:    source.Icon,
+		Tint:    source.Tint,
+		Accent:  source.Accent,
+		Enabled: false, // 默认禁用，避免与源供应商冲突
+		Level:   source.Level,
+	}
+
+	// 5. 深拷贝 map（避免共享引用）
+	if source.SupportedModels != nil {
+		cloned.SupportedModels = make(map[string]bool, len(source.SupportedModels))
+		for k, v := range source.SupportedModels {
+			cloned.SupportedModels[k] = v
+		}
+	}
+
+	if source.ModelMapping != nil {
+		cloned.ModelMapping = make(map[string]string, len(source.ModelMapping))
+		for k, v := range source.ModelMapping {
+			cloned.ModelMapping[k] = v
+		}
+	}
+
+	// 6. 添加到列表并保存
+	providers = append(providers, *cloned)
+	if err := ps.SaveProviders(kind, providers); err != nil {
+		return nil, fmt.Errorf("保存副本失败: %w", err)
+	}
+
+	return cloned, nil
 }
 
 // IsModelSupported 检查 provider 是否支持指定的模型

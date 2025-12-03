@@ -32,6 +32,7 @@
             <option value="">{{ t('components.logs.filters.allPlatforms') }}</option>
             <option value="claude">Claude</option>
             <option value="codex">Codex</option>
+            <option value="gemini">Gemini</option>
           </select>
         </label>
         <label class="filter-field">
@@ -131,6 +132,7 @@ import {
   type RequestLog,
   type LogStats,
   type LogStatsSeries,
+  type LogPlatform,
 } from '../../services/logs'
 import {
   Chart,
@@ -152,7 +154,7 @@ const router = useRouter()
 const logs = ref<RequestLog[]>([])
 const stats = ref<LogStats | null>(null)
 const loading = ref(false)
-const filters = reactive({ platform: '', provider: '' })
+const filters = reactive<{ platform: LogPlatform | ''; provider: string }>({ platform: '', provider: '' })
 const page = ref(1)
 const PAGE_SIZE = 15
 const providerOptions = ref<string[]>([])

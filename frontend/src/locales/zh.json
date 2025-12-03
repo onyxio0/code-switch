@@ -8,6 +8,76 @@
     "shortcut": "快捷键",
     "about": "关于"
   },
+  "sidebar": {
+    "home": "首页",
+    "prompts": "提示词",
+    "mcp": "MCP",
+    "skill": "技能",
+    "gemini": "Gemini",
+    "speedtest": "测速",
+    "env": "环境",
+    "logs": "日志",
+    "console": "控制台",
+    "settings": "设置"
+  },
+  "prompts": {
+    "hero": {
+      "eyebrow": "提示词管理",
+      "title": "管理系统提示词",
+      "lead": "为 Claude Code、Codex 和 Gemini 配置自定义系统提示词，增强 AI 编程助手的能力。"
+    },
+    "stats": {
+      "total": "共 {count} 个提示词",
+      "enabled": "已启用"
+    },
+    "empty": "暂无提示词，点击下方按钮创建",
+    "loading": "加载中...",
+    "confirmDelete": "确认删除此提示词？",
+    "actions": {
+      "create": "新增提示词",
+      "import": "从文件导入"
+    },
+    "form": {
+      "createTitle": "新增提示词",
+      "editTitle": "编辑提示词",
+      "name": "名称",
+      "namePlaceholder": "例如：代码审查专家",
+      "description": "描述",
+      "descriptionPlaceholder": "简短描述此提示词的用途",
+      "content": "提示词内容",
+      "cancel": "取消",
+      "save": "保存"
+    }
+  },
+  "speedtest": {
+    "hero": {
+      "eyebrow": "API 速度测试",
+      "title": "测试 API 端点延迟",
+      "lead": "测量各 API 端点的响应速度，帮助选择最优的服务供应商。"
+    },
+    "placeholder": "输入 API 端点 URL",
+    "add": "添加",
+    "endpoints": "端点列表（{count} 个）",
+    "start": "开始测试",
+    "testing": "测试中",
+    "empty": "添加 API 端点开始测试",
+    "failed": "失败"
+  },
+  "envcheck": {
+    "hero": {
+      "eyebrow": "环境变量检测",
+      "title": "检测环境变量冲突",
+      "lead": "扫描系统环境变量和配置文件，发现可能影响 AI 编程工具的变量冲突。"
+    },
+    "checking": "检测中...",
+    "error": "检测失败",
+    "found": "发现 {count} 个冲突的环境变量",
+    "noConflicts": "未发现环境变量冲突",
+    "value": "值",
+    "source": "来源",
+    "source.system": "系统环境变量",
+    "refresh": "重新检测"
+  },
   "components": {
     "home": {},
     "provider": {
@@ -60,7 +130,8 @@
       },
       "tabs": {
         "ariaLabel": "AI 供应商切换",
-        "addCard": "新增供应商卡片"
+        "addCard": "新增供应商卡片",
+        "refresh": "刷新数据"
       },
       "relayToggle": {
         "label": "Claude proxy",
@@ -78,11 +149,14 @@
       "controls": {
         "github": "打开 GitHub",
         "githubUpdate": "打开 GitHub（发现新版本）",
+        "updateReady": "更新已准备好，点击重启",
         "theme": "切换主题",
         "settings": "打开设置",
         "mcp": "打开 MCP 面板",
         "skill": "打开 Skill 列表",
-        "import": "导入 cc-switch 配置"
+        "gemini": "打开 Gemini CLI 管理",
+        "import": "导入 cc-switch 配置",
+        "duplicate": "复制供应商"
       },
       "versionLabel": "版本 {version}",
       "importConfig": {
@@ -147,12 +221,29 @@
         "lower": "较低优先级",
         "veryLow": "很低优先级",
         "lowest": "最低优先级"
+      },
+      "blacklist": {
+        "blocked": "已拉黑",
+        "remaining": "剩余",
+        "minutes": "分",
+        "seconds": "秒",
+        "unblock": "立即解禁",
+        "unblockSuccess": "已解除 {name} 的拉黑",
+        "unblockFailed": "解除拉黑失败，请稍后重试",
+        "unblockAndReset": "完全解除",
+        "resetLevel": "清零等级",
+        "unblockAndResetHint": "解除拉黑并重置等级，重新开始降级计时",
+        "resetLevelHint": "仅清零等级，保留拉黑状态",
+        "resetLevelSuccess": "已清零 {name} 的等级",
+        "resetLevelFailed": "清零等级失败，请稍后重试",
+        "levelHint": "有失败记录",
+        "levelTitle": "黑名单等级 L{level}"
       }
     },
     "logs": {
       "eyebrow": "请求追踪",
       "title": "代理请求日志",
-      "subtitle": "查看 Claude Code 与 Codex 代理的最新访问记录。",
+      "subtitle": "查看 Claude Code、Codex 与 Gemini 代理的最新访问记录。",
       "loading": "加载中...",
       "refresh": "刷新",
       "applyFilters": "应用筛选",
@@ -211,7 +302,8 @@
         "power": "权限设置",
         "application": "应用设置",
         "exterior": "外观设置",
-        "update": "应用更新"
+        "update": "应用更新",
+        "blacklist": "拉黑配置"
       },
       "label": {
         "assistant_access": "辅助功能访问权限",
@@ -222,8 +314,25 @@
         "heatmap": "显示主界面热力墙",
         "homeTitle": "显示首页标题",
         "autoStart": "开机自启动",
+        "autoUpdate": "自动更新",
+        "lastCheck": "上次检查",
+        "currentVersion": "当前版本",
+        "latestVersion": "最新版本",
+        "checkNow": "立即检查",
+        "manualUpdate": "手动更新",
         "automatic_up": "自动检查更新",
-        "next_up": "下次启动自动检查更新"
+        "next_up": "下次启动自动检查更新",
+        "blacklistThreshold": "失败次数阈值",
+        "blacklistDuration": "拉黑时长",
+        "saveBlacklist": "保存配置",
+        "enableBlacklist": "启用拉黑功能",
+        "enableBlacklistHint": "关闭后将不再自动拉黑失败的供应商",
+        "enableLevelBlacklist": "启用等级拉黑",
+        "enableLevelBlacklistHint": "开启后使用分级拉黑机制（L1-L5），关闭则使用固定时长",
+        "times": "次",
+        "minutes": "分钟",
+        "save": "保存",
+        "saving": "保存中..."
       },
       "subLabel": {
         "sb_assistant_access": "需要无障碍访问权限来操作剪切板内容",
@@ -234,6 +343,7 @@
         "go_authorized": "去授权",
         "back": "返回首页"
       },
+<<<<<<< HEAD
       "import": {
         "label": "导入 cc-switch 配置",
         "path": "配置文件：{path}",
@@ -250,6 +360,15 @@
         "clear": "清除选择",
         "reupload": "重新上传",
         "missingDefault": "未检测到 cc-switch 配置文件，可手动上传 JSON 进行导入"
+=======
+      "update": {
+        "checkFailed": "连续 {count} 次检查失败",
+        "checking": "检查中...",
+        "checkNow": "立即检查",
+        "downloading": "下载中 {progress}%",
+        "downloadAndInstall": "下载并安装",
+        "installAndRestart": "安装并重启"
+>>>>>>> rogers/main
       }
     },
     "mcp": {
@@ -329,6 +448,61 @@
         "deleteMessage": "确认删除 {name} 吗？操作不可撤销"
       }
     },
+    "gemini": {
+      "hero": {
+        "eyebrow": "Gemini CLI 管理",
+        "title": "管理 Gemini 供应商",
+        "lead": "配置 Gemini CLI 的 API 供应商，支持 Google 官方和第三方中转服务。"
+      },
+      "controls": {
+        "back": "返回主页",
+        "settings": "打开设置",
+        "refresh": "刷新",
+        "create": "新增供应商"
+      },
+      "status": {
+        "enabled": "已启用",
+        "disabled": "未配置",
+        "active": "当前使用"
+      },
+      "auth": {
+        "oauth": "OAuth 认证",
+        "apiKey": "API Key 认证"
+      },
+      "category": {
+        "official": "官方",
+        "thirdParty": "第三方",
+        "custom": "自定义"
+      },
+      "presets": {
+        "title": "预设供应商"
+      },
+      "providers": {
+        "title": "已配置的供应商"
+      },
+      "list": {
+        "loading": "加载中...",
+        "empty": "暂无配置的供应商，点击预设卡片快速添加",
+        "edit": "编辑",
+        "delete": "删除"
+      },
+      "actions": {
+        "switch": "切换"
+      },
+      "form": {
+        "createTitle": "新增 Gemini 供应商",
+        "editTitle": "编辑 Gemini 供应商",
+        "deleteTitle": "删除供应商",
+        "deleteMessage": "确认删除 {name} 吗？操作不可撤销",
+        "name": "供应商名称",
+        "baseUrl": "API 地址",
+        "apiKey": "API 密钥",
+        "model": "默认模型",
+        "cancel": "取消",
+        "save": "保存",
+        "delete": "删除"
+      }
+    },
     "skill": {
       "hero": {
         "eyebrow": "Skill 仓库",
@@ -395,6 +569,25 @@
         "invalid": "组合无效，请包含修饰键"
       },
       "placeholder": "点击并按下组合键"
+    },
+    "deeplink": {
+      "title": "从深度链接导入供应商",
+      "preview": "请确认以下信息后点击导入：",
+      "import": "导入",
+      "importing": "正在导入...",
+      "success": "导入成功！",
+      "error": {
+        "title": "导入失败"
+      },
+      "field": {
+        "name": "名称",
+        "app": "平台",
+        "homepage": "主页",
+        "endpoint": "端点",
+        "apiKey": "API密钥",
+        "model": "模型",
+        "notes": "备注"
+      }
     }
   }
 }
