@@ -145,8 +145,8 @@ func updateUpdaterManifest(path, version string) error {
 		// XML 声明行以 <?xml 开头，assemblyIdentity 内的 version 行以空格开头
 		// 额外检查：确保不是 XML 声明行（第一行且包含 <?xml）
 		isXMLDeclaration := i == 0 && strings.HasPrefix(trimmedLine, "<?xml")
-		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行
-		if inAssemblyIdentity && !isXMLDeclaration && strings.Contains(line, `version="`) {
+		// 确保在 assemblyIdentity 标签内，且不是 XML 声明行，且行以空格开头（assemblyIdentity 内的属性）
+		if inAssemblyIdentity && !isXMLDeclaration && strings.HasPrefix(line, "  ") && strings.Contains(line, `version="`) {
 			// 只替换这一行的 version 值（匹配前导空白 + version="值"）
 			re := regexp.MustCompile(`(\s+version=")[^"]+(")`)
 			lines[i] = re.ReplaceAllString(line, fmt.Sprintf(`$1%s$2`, manifestVersion))
