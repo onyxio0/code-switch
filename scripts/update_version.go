@@ -47,6 +47,7 @@ func main() {
 		{"build/windows/wails.exe.manifest", updateManifestFile},
 		{"build/windows/nsis/wails_tools.nsh", updateNSISFile},
 		{"build/linux/nfpm/nfpm.yaml", updateNFPMYAML},
+		{"cmd/updater/updater.exe.manifest", updateUpdaterManifest},
 	}
 
 	for _, file := range files {
@@ -98,12 +99,40 @@ func updatePlistFile(path, version string) error {
 	contentStr := string(content)
 
 	// 更新 CFBundleVersion - 匹配 <key>CFBundleVersion</key> 后面的 <string>版本号</string>
+	// 使用多行模式，确保匹配完整的 key-value 对
 	re1 := regexp.MustCompile(`(<key>CFBundleVersion</key>\s*<string>)[^<]+(</string>)`)
-	contentStr = re1.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
+	if re1.MatchString(contentStr) {
+		contentStr = re1.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
+	}
 
 	// 更新 CFBundleShortVersionString - 匹配 <key>CFBundleShortVersionString</key> 后面的 <string>版本号</string>
 	re2 := regexp.MustCompile(`(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)`)
-	newContent := re2.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
+	if re2.MatchString(contentStr) {
+		contentStr = re2.ReplaceAllString(contentStr, fmt.Sprintf(`$1%s$2`, version))
+	}
+
+	return ioutil.WriteFile(path, []byte(contentStr), 0644)
+}
+
+// 更新 updater.exe.manifest 文件
+func updateUpdaterManifest(path, version string) error {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	// 将版本号转换为 4 部分格式 (major.minor.patch.0)
+	// 例如 1.2.5 -> 1.2.5.0
+	versionParts := strings.Split(version, ".")
+	for len(versionParts) < 4 {
+		versionParts = append(versionParts, "0")
+	}
+	manifestVersion := strings.Join(versionParts[:4], ".")
+
+	// 匹配 <assemblyIdentity ... version="1.0.0.0" ...> 格式（支持多行）
+	// 使用 (?s) 使 . 匹配换行符
+	re := regexp.MustCompile(`(?s)(<assemblyIdentity[^>]*name="CodeSwitch\.Updater"[^>]*version=")[^"]+(")`)
+	newContent := re.ReplaceAllString(string(content), fmt.Sprintf(`$1%s$2`, manifestVersion))
 
 	return ioutil.WriteFile(path, []byte(newContent), 0644)
 }
